@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kenovus — Connect Every Point. Optimize Every Life.</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#060402;color:#F0EAE0;font-family:'Jost',sans-serif;font-weight:300;overflow-x:hidden}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(6,4,2,0.96) 70%,transparent)}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-wm{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:17px;letter-spacing:6px;text-transform:uppercase;color:#C9A84C}
+.nav-links{display:flex;align-items:center;gap:24px;list-style:none}
+.nav-links a{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(240,234,224,0.45);text-decoration:none}
+.nav-cta{padding:7px 18px;border:1px solid rgba(201,168,76,0.4);border-radius:100px;color:#C9A84C!important}
+@media(max-width:640px){.nav-links{display:none}}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#060402;position:relative;overflow:hidden;padding-top:60px;padding-bottom:40px}
+.hero-orbit{width:min(680px,94vw);flex-shrink:0}
+.hero-orbit svg{width:100%;height:auto;display:block}
+.hero-lower{display:flex;flex-direction:column;align-items:center;text-align:center;margin-top:4px;gap:8px}
+.hero-tag{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(15px,2.8vw,22px);color:rgba(226,201,126,0.82)}
+.hero-sub{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:rgba(240,234,224,0.36);margin-bottom:4px}
+.hero-btns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.btn-g{padding:13px 30px;background:rgba(201,168,76,0.14);border:1px solid #C9A84C;border-radius:100px;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#E2C97E;text-decoration:none;display:inline-block}
+.btn-s{padding:13px 30px;border:1px solid rgba(240,234,224,0.2);border-radius:100px;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:rgba(240,234,224,0.52);text-decoration:none;display:inline-block}
+.scroll-hint{margin-top:24px;display:flex;flex-direction:column;align-items:center;gap:7px}
+.scroll-hint span{font-size:8px;letter-spacing:4px;text-transform:uppercase;color:rgba(201,168,76,0.38)}
+.scroll-line{width:1px;height:30px;background:linear-gradient(to bottom,rgba(201,168,76,0.5),transparent)}
+
+/* SECTIONS */
+.sec{padding:88px 32px;background:#060402}
+.sec.alt{background:#0d0a05;border-top:1px solid rgba(201,168,76,0.08);border-bottom:1px solid rgba(201,168,76,0.08)}
+.sec-in{max-width:1060px;margin:0 auto}
+.lbl{display:block;font-size:9px;letter-spacing:5px;text-transform:uppercase;color:#C9A84C;margin-bottom:14px}
+h2{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(26px,5vw,48px);line-height:1.18;color:#F0EAE0;margin-bottom:20px}
+h2 em{font-style:italic;color:#E2C97E}
+.bt{font-size:15px;line-height:1.82;color:rgba(240,234,224,0.55);max-width:540px}
+
+/* STAT CARDS */
+.prob-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.stat-card{background:#100d08;border:1px solid rgba(201,168,76,0.18);padding:28px 20px 42px;position:relative;cursor:pointer;-webkit-tap-highlight-color:rgba(201,168,76,0.08)}
+.stat-card:active{background:#1a1409}
+.stat-num{font-family:'Cormorant Garamond',serif;font-size:38px;font-weight:300;color:#C9A84C;line-height:1;margin-bottom:10px}
+.stat-lbl{font-size:11px;line-height:1.55;color:rgba(240,234,224,0.5)}
+.stat-tap{position:absolute;bottom:10px;right:12px;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(201,168,76,0.45)}
+
+/* FEATURES */
+.feat-hdr{text-align:center;margin-bottom:52px}
+.feat-hdr h2{text-align:center}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.feat-card{background:#0a0806;border:1px solid rgba(201,168,76,0.1);padding:30px 24px}
+.feat-icon{font-size:22px;margin-bottom:14px;display:block}
+.feat-name{font-family:'Cormorant Garamond',serif;font-size:18px;color:#F0EAE0;margin-bottom:8px}
+.feat-desc{font-size:12px;line-height:1.70;color:rgba(240,234,224,0.48)}
+
+/* WHITE LABEL */
+.wl-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+.phone{background:#100d07;border:1px solid rgba(201,168,76,0.22);border-radius:26px;padding:30px 18px;text-align:center}
+.phone-nm{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;letter-spacing:6px;color:#E2C97E;margin-bottom:4px}
+.phone-pw{font-size:8px;letter-spacing:4px;text-transform:uppercase;color:rgba(201,168,76,0.38);margin-bottom:22px}
+.phone-sc{font-family:'Cormorant Garamond',serif;font-size:60px;font-weight:300;color:#C9A84C;line-height:1;margin-bottom:5px}
+.phone-sl{font-size:9px;letter-spacing:4px;text-transform:uppercase;color:rgba(240,234,224,0.36);margin-bottom:20px}
+.phone-pills{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-bottom:18px}
+.pill{padding:5px 10px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.22);border-radius:100px;font-size:9px;color:rgba(240,234,224,0.58)}
+.phone-ai{background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.14);border-radius:10px;padding:13px;text-align:left;font-size:11px;font-style:italic;line-height:1.65;color:rgba(240,234,224,0.62)}
+.gold-note{font-size:13px;line-height:1.7;margin-top:18px;color:#C9A84C}
+
+/* PRICING */
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:48px}
+.price-card{background:#0a0806;border:1px solid rgba(201,168,76,0.14);padding:38px 24px;position:relative}
+.price-card.feat{background:#110f08;border-color:rgba(201,168,76,0.32)}
+.price-badge{position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:#C9A84C;color:#060402;font-size:8px;letter-spacing:3px;text-transform:uppercase;font-weight:500;padding:5px 16px;white-space:nowrap}
+.price-tier{font-size:9px;letter-spacing:4px;text-transform:uppercase;margin-bottom:12px;color:#C9A84C}
+.price-amt{font-family:'Cormorant Garamond',serif;font-size:46px;font-weight:300;color:#F0EAE0;line-height:1;margin-bottom:4px}
+.price-per{font-size:10px;margin-bottom:8px;color:rgba(240,234,224,0.38)}
+.price-pts{font-size:12px;margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid rgba(201,168,76,0.12);color:rgba(201,168,76,0.72)}
+.price-feats{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:30px}
+.price-feats li{font-size:12px;padding-left:16px;position:relative;line-height:1.45;color:rgba(240,234,224,0.55)}
+.price-feats li::before{content:'–';position:absolute;left:0;color:rgba(201,168,76,0.4)}
+.price-btn{display:block;text-align:center;padding:11px;border:1px solid rgba(201,168,76,0.35);border-radius:100px;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;text-decoration:none}
+.price-card.feat .price-btn{background:#C9A84C;color:#060402;border-color:#C9A84C;font-weight:500}
+.price-note{text-align:center;margin-top:22px;font-size:11px;color:rgba(240,234,224,0.28)}
+
+/* FOUNDER */
+.founder{text-align:center;padding:96px 32px;background:#0d0a05;border-top:1px solid rgba(201,168,76,0.08);border-bottom:1px solid rgba(201,168,76,0.08)}
+.founder-q{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(17px,3vw,28px);line-height:1.68;color:#F0EAE0;max-width:700px;margin:0 auto 28px}
+.founder-attr{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:rgba(240,234,224,0.35)}
+
+/* CTA */
+.cta-sec{text-align:center}
+.cta-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:36px}
+
+/* FOOTER */
+.foot-wrap{background:#040200;border-top:1px solid rgba(201,168,76,0.1)}
+footer{max-width:1060px;margin:0 auto;padding:36px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.foot-logo{font-family:'Cormorant Garamond',serif;font-size:17px;letter-spacing:6px;text-transform:uppercase;color:#C9A84C}
+.foot-mid,.foot-r{font-size:10px;line-height:1.7;text-align:center;color:rgba(240,234,224,0.28)}
+
+/* MODALS */
+.moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.90);z-index:999;align-items:center;justify-content:center;padding:20px}
+.moverlay.open{display:flex}
+.mbox{background:#110e07;border:1px solid rgba(201,168,76,0.30);border-radius:16px;padding:36px 28px;max-width:450px;width:100%;position:relative;max-height:88vh;overflow-y:auto}
+.mclose{position:absolute;top:12px;right:16px;font-size:24px;color:rgba(201,168,76,0.55);cursor:pointer;background:none;border:none;line-height:1;padding:4px}
+.mnum{font-family:'Cormorant Garamond',serif;font-size:50px;font-weight:300;color:#C9A84C;line-height:1;margin-bottom:8px}
+.mhl{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;color:#F0EAE0;line-height:1.35;margin-bottom:14px}
+.mbody{font-size:14px;line-height:1.78;margin-bottom:10px;color:rgba(240,234,224,0.60)}
+.msrc{font-size:10px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(201,168,76,0.1);color:rgba(240,234,224,0.28)}
+.mmath{background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:8px;padding:14px;margin:12px 0}
+.mmath-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(201,168,76,0.08);font-size:12px;gap:10px}
+.mmath-row:last-child{border-bottom:none;font-weight:500;font-size:13px;padding-top:10px}
+.mmath-row .ml{color:rgba(240,234,224,0.60);flex:1}
+.mmath-row .mr{color:#C9A84C;white-space:nowrap}
+
+@media(max-width:680px){
+  .sec{padding:68px 20px}
+  .prob-grid,.wl-grid{grid-template-columns:1fr;gap:36px}
+  .feat-grid,.price-grid{grid-template-columns:1fr}
+  .hero-btns,.cta-btns{flex-direction:column;align-items:center}
+  footer{flex-direction:column;align-items:center;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <svg width="20" height="20" viewBox="0 0 44 44" fill="none">
+      <ellipse cx="22" cy="22" rx="18" ry="6.5" stroke="#C9A84C" stroke-width="1.2" opacity="0.65" transform="rotate(-20 22 22)"/>
+      <circle cx="22" cy="8" r="2.8" fill="#E2C97E" opacity="0.9"/>
+    </svg>
+    <span class="nav-wm">Kenovus</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#platform">Platform</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#contact" class="nav-cta">Request Access</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-orbit">
+    <svg viewBox="0 0 680 290" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <path id="tp" d="M 340 145 m -282 0 a 282 78 0 1 1 564 0 a 282 78 0 1 1 -564 0" fill="none"/>
+        <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stop-color="rgba(110,82,14,0)"/>
+          <stop offset="12%"  stop-color="rgba(152,112,28,0.28)"/>
+          <stop offset="38%"  stop-color="rgba(194,152,54,0.80)"/>
+          <stop offset="56%"  stop-color="rgba(212,172,72,0.95)"/>
+          <stop offset="80%"  stop-color="rgba(158,118,36,0.30)"/>
+          <stop offset="100%" stop-color="rgba(110,82,14,0)"/>
+        </linearGradient>
+        <linearGradient id="wg" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stop-color="#EEE090"/>
+          <stop offset="26%"  stop-color="#DBBA43"/>
+          <stop offset="55%"  stop-color="#C9A84C"/>
+          <stop offset="100%" stop-color="#9A7A18"/>
+        </linearGradient>
+        <filter id="gl"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="gllg"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="wf"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+
+      <!-- Background glow -->
+      <ellipse cx="340" cy="145" rx="230" ry="68" fill="rgba(58,33,2,0.30)">
+        <animate attributeName="opacity" values="0.65;1;0.65" dur="5s" repeatCount="indefinite"/>
+      </ellipse>
+
+      <!-- Stars -->
+      <circle cx="52"  cy="32"  r="0.9" fill="#C9A84C"><animate attributeName="opacity" values="0.1;0.6;0.1" dur="3.2s" repeatCount="indefinite"/></circle>
+      <circle cx="614" cy="25"  r="1.0" fill="#C9A84C"><animate attributeName="opacity" values="0.1;0.55;0.1" dur="4.1s" repeatCount="indefinite"/></circle>
+      <circle cx="652" cy="240" r="0.8" fill="#C9A84C"><animate attributeName="opacity" values="0.2;0.65;0.2" dur="2.8s" repeatCount="indefinite"/></circle>
+      <circle cx="36"  cy="255" r="0.9" fill="#C9A84C"><animate attributeName="opacity" values="0.1;0.5;0.1" dur="3.7s" repeatCount="indefinite"/></circle>
+      <circle cx="660" cy="130" r="0.7" fill="#C9A84C"><animate attributeName="opacity" values="0.2;0.6;0.2" dur="5.0s" repeatCount="indefinite"/></circle>
+      <circle cx="20"  cy="140" r="0.8" fill="#C9A84C"><animate attributeName="opacity" values="0.1;0.5;0.1" dur="3.9s" repeatCount="indefinite"/></circle>
+      <circle cx="340" cy="14"  r="0.7" fill="#C9A84C"><animate attributeName="opacity" values="0.2;0.7;0.2" dur="4.4s" repeatCount="indefinite"/></circle>
+
+      <!-- Orbit ring -->
+      <g transform="rotate(-12, 340, 145)">
+        <ellipse cx="340" cy="145" rx="284" ry="80" fill="none" stroke="url(#rg)" stroke-width="1.7"/>
+        <ellipse cx="340" cy="145" rx="284" ry="80" fill="none" stroke="url(#rg)" stroke-width="0.7" opacity="0.30" transform="translate(0,9)"/>
+      </g>
+
+      <!-- Wordmark inside orbit -->
+      <text x="340" y="166"
+        font-family="'Cormorant Garamond',Georgia,serif"
+        font-weight="300" font-size="82" letter-spacing="7"
+        text-anchor="middle" fill="url(#wg)" filter="url(#wf)">KEN&#x14C;VUS</text>
+
+      <!-- Hairline rule -->
+      <line x1="130" y1="185" x2="550" y2="185" stroke="rgba(201,168,76,0.33)" stroke-width="0.7"/>
+
+      <!-- Constellation dots -->
+      <circle cx="384" cy="108" r="3.8" fill="rgba(242,218,142,0.85)" filter="url(#gl)"/>
+      <circle cx="350" cy="102" r="2.7" fill="rgba(228,196,118,0.63)" filter="url(#gl)"/>
+      <circle cx="366" cy="94"  r="2.3" fill="rgba(218,185,105,0.53)" filter="url(#gl)"/>
+      <circle cx="400" cy="114" r="2.5" fill="rgba(224,190,110,0.57)" filter="url(#gl)"/>
+      <circle cx="333" cy="110" r="1.9" fill="rgba(208,174,95,0.41)"  filter="url(#gl)"/>
+      <g opacity="0.38" stroke="rgba(200,162,55,1)" stroke-width="0.8">
+        <line x1="384" y1="108" x2="350" y2="102"/>
+        <line x1="384" y1="108" x2="366" y2="94"/>
+        <line x1="384" y1="108" x2="400" y2="114"/>
+        <line x1="350" y1="102" x2="366" y2="94"/>
+        <line x1="366" y1="94"  x2="400" y2="114"/>
+        <line x1="333" y1="110" x2="350" y2="102"/>
+      </g>
+
+      <!-- Apex star -->
+      <circle cx="460" cy="88" r="5.5" fill="rgba(255,245,195,0.95)" filter="url(#gllg)"/>
+      <circle cx="460" cy="88" r="2.8" fill="rgba(255,250,215,1)"/>
+      <circle cx="460" cy="88" r="15" fill="none" stroke="rgba(201,168,76,0.18)" stroke-width="1">
+        <animate attributeName="r" values="11;20;11" dur="3s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.55;0.08;0.55" dur="3s" repeatCount="indefinite"/>
+      </circle>
+
+      <!-- Traveler 1 + trail -->
+      <circle r="5.0" fill="rgba(255,248,196,0.96)" filter="url(#gllg)">
+        <animateMotion dur="11s" repeatCount="indefinite"><mpath href="#tp"/></animateMotion>
+      </circle>
+      <circle r="3.0" fill="rgba(226,196,118,0.50)">
+        <animateMotion dur="11s" begin="-0.4s" repeatCount="indefinite"><mpath href="#tp"/></animateMotion>
+      </circle>
+      <circle r="1.8" fill="rgba(201,168,76,0.28)">
+        <animateMotion dur="11s" begin="-0.75s" repeatCount="indefinite"><mpath href="#tp"/></animateMotion>
+      </circle>
+      <!-- Traveler 2 -->
+      <circle r="3.0" fill="rgba(226,196,118,0.56)">
+        <animateMotion dur="11s" begin="-3.67s" repeatCount="indefinite"><mpath href="#tp"/></animateMotion>
+      </circle>
+      <!-- Traveler 3 -->
+      <circle r="2.2" fill="rgba(201,168,76,0.38)">
+        <animateMotion dur="11s" begin="-7.33s" repeatCount="indefinite"><mpath href="#tp"/></animateMotion>
+      </circle>
+    </svg>
+  </div>
+
+  <div class="hero-lower">
+    <p class="hero-tag">Connect Every Point. Optimize Every Life.</p>
+    <p class="hero-sub">Clinical AI Wellness Platform for Medical Spas</p>
+    <div class="hero-btns">
+      <a href="#contact" class="btn-g">Request Early Access</a>
+      <a href="#platform" class="btn-s">See the Platform</a>
+    </div>
+  </div>
+  <div class="scroll-hint"><span>Scroll</span><div class="scroll-line"></div></div>
+</div>
+
+<!-- PROBLEM -->
+<div id="platform" class="sec">
+  <div class="sec-in">
+    <div class="prob-grid">
+      <div>
+        <span class="lbl">The Problem</span>
+        <h2>Your patients leave the clinic and <em>disappear into a void.</em></h2>
+        <p class="bt">No follow-up. No coaching. No accountability between visits. For GLP-1 programs, InBody scanning, and aesthetic treatments — the gap between appointments is where results are lost, patients churn, and revenue walks out the door.</p>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card" onclick="openM('m1')">
+          <div class="stat-num">68%</div>
+          <div class="stat-lbl">of aesthetic patients don't return after their first visit</div>
+          <div class="stat-tap">Tap to learn more ›</div>
+        </div>
+        <div class="stat-card" onclick="openM('m2')">
+          <div class="stat-num">Mid-Month</div>
+          <div class="stat-lbl">Most clinic owners find out what they made last month — mid-next-month</div>
+          <div class="stat-tap">Tap to learn more ›</div>
+        </div>
+        <div class="stat-card" onclick="openM('m3')">
+          <div class="stat-num">$111K+</div>
+          <div class="stat-lbl">in additional annual revenue sitting in your existing patient base</div>
+          <div class="stat-tap">Tap to see the math ›</div>
+        </div>
+        <div class="stat-card" onclick="openM('m4')">
+          <div class="stat-num">Day 1</div>
+          <div class="stat-lbl">your patients have a clinical coach in their pocket from the moment they leave</div>
+          <div class="stat-tap">Tap to learn more ›</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div id="features" class="sec alt">
+  <div class="sec-in">
+    <div class="feat-hdr">
+      <span class="lbl">The Platform</span>
+      <h2>Everything your practice needs.<br><em>Nothing it doesn't.</em></h2>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card"><span class="feat-icon">🤖</span><div class="feat-name">Clinical AI Coach</div><p class="feat-desc">Powered by Anthropic Claude, trained on your exact protocols. GLP-1, InBody, skincare — your voice, 24/7.</p></div>
+      <div class="feat-card"><span class="feat-icon">📊</span><div class="feat-name">Vitality Score</div><p class="feat-desc">Daily 0–100 score across 6 pillars. Auto-filled from Apple Health, Oura, Whoop, or Fitbit.</p></div>
+      <div class="feat-card"><span class="feat-icon">💉</span><div class="feat-name">GLP-1 Tracking</div><p class="feat-desc">30-second daily symptom check-in. Real-time alerts to your provider if anything hits 4/5.</p></div>
+      <div class="feat-card"><span class="feat-icon">📸</span><div class="feat-name">Progress Story</div><p class="feat-desc">4-angle photo vault with AI comparison. Monthly before/after report — shareable in one tap.</p></div>
+      <div class="feat-card"><span class="feat-icon">⚡</span><div class="feat-name">Plateau Breaker</div><p class="feat-desc">Auto-detects weight stalls after 10+ days and presents 3 protocol-based interventions.</p></div>
+      <div class="feat-card"><span class="feat-icon">🔬</span><div class="feat-name">Laser Protocol Tab</div><p class="feat-desc">Per-patient device settings, Fitzpatrick scale, last treatment, clinical endpoints — one tap.</p></div>
+      <div class="feat-card"><span class="feat-icon">💰</span><div class="feat-name">Financial Dashboard</div><p class="feat-desc">Real-time revenue, monthly P&L, one-click CPA export. Frees your AR for patient-facing work.</p></div>
+      <div class="feat-card"><span class="feat-icon">🎁</span><div class="feat-name">Referral Program</div><p class="feat-desc">Unique code per patient. Booking triggers an automatic perk. Every referral tracked and attributed.</p></div>
+      <div class="feat-card"><span class="feat-icon">🛍</span><div class="feat-name">Supplement Store</div><p class="feat-desc">Thorne supplements + Sona skincare. AI recommends based on labs. Ships direct to patients.</p></div>
+      <div class="feat-card"><span class="feat-icon">💳</span><div class="feat-name">Book & Pay</div><p class="feat-desc">Deposits, Apple Pay, tips. No-show deposits enforced automatically. Revenue routes to Sona.</p></div>
+      <div class="feat-card"><span class="feat-icon">⌚</span><div class="feat-name">Wearable Sync</div><p class="feat-desc">Apple Health, Oura, Whoop, Fitbit. Sleep, HRV, steps auto-fill your Vitality Score daily.</p></div>
+      <div class="feat-card"><span class="feat-icon">🔔</span><div class="feat-name">Smart Reminders</div><p class="feat-desc">Timed to clinical need — not calendar dates. InBody intervals, injection windows, skincare.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- WHITE LABEL -->
+<div class="sec">
+  <div class="sec-in">
+    <div class="wl-grid">
+      <div>
+        <span class="lbl">White-Label Platform</span>
+        <h2>Your brand.<br><em>Our infrastructure.</em></h2>
+        <p class="bt">Every clinic gets their own branded app — their logo, their colors, their treatments, their protocols. Patients experience it as their clinic's app.</p>
+        <p class="gold-note">Think Shopify. The customer shops at Allbirds and never knows it's Shopify. Kenovus is the Shopify for med spas.</p>
+      </div>
+      <div class="phone">
+        <div class="phone-nm">SonaLife</div>
+        <div class="phone-pw">Powered by Kenovus</div>
+        <div class="phone-sc">87</div>
+        <div class="phone-sl">Vitality Score · Today</div>
+        <div class="phone-pills"><span class="pill">Body</span><span class="pill">Aesthetics</span><span class="pill">Health</span><span class="pill">Mindset</span><span class="pill">Momentum</span></div>
+        <div class="phone-ai">"Your protein hit 142g today — a new high. Your InBody is in 3 days. Keep this up and you'll see it in your muscle mass numbers."</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<div id="pricing" class="sec alt">
+  <div class="sec-in">
+    <div class="feat-hdr">
+      <span class="lbl">Pricing</span>
+      <h2>Simple, transparent,<br><em>pays for itself.</em></h2>
+    </div>
+    <div class="price-grid">
+      <div class="price-card">
+        <div class="price-tier">Starter</div>
+        <div class="price-amt">$349</div>
+        <div class="price-per">/month · or $2,990/year</div>
+        <div class="price-pts">Up to 75 active patients</div>
+        <ul class="price-feats"><li>White-label patient app</li><li>AI clinical coach</li><li>GLP-1 tracking</li><li>Financial dashboard</li><li>Book & Pay</li><li>Supplement store</li></ul>
+        <a href="#contact" class="price-btn">Get Started</a>
+      </div>
+      <div class="price-card feat">
+        <div class="price-badge">Most Popular</div>
+        <div class="price-tier">Growth</div>
+        <div class="price-amt">$549</div>
+        <div class="price-per">/month · or $4,490/year</div>
+        <div class="price-pts">Up to 250 active patients</div>
+        <ul class="price-feats"><li>Everything in Starter</li><li>Wearable integrations</li><li>Referral program</li><li>CPA tax export</li><li>Plateau Breaker</li><li>Progress Story + photos</li></ul>
+        <a href="#contact" class="price-btn">Get Started</a>
+      </div>
+      <div class="price-card">
+        <div class="price-tier">Scale</div>
+        <div class="price-amt">$899</div>
+        <div class="price-per">/month · or $7,490/year</div>
+        <div class="price-pts">Unlimited patients</div>
+        <ul class="price-feats"><li>Everything in Growth</li><li>Laser protocol tab</li><li>Multi-provider support</li><li>Custom AI protocols</li><li>Direct access to founding team</li><li>Founding partner status</li></ul>
+        <a href="#contact" class="price-btn">Get Started</a>
+      </div>
+    </div>
+    <p class="price-note">14-day free trial · No credit card required · Full Growth access included</p>
+  </div>
+</div>
+
+<!-- FOUNDER -->
+<div class="founder">
+  <p class="founder-q">"We built Kenovus because we watched extraordinary clinicians lose patients — not to a lack of care, but to a lack of connection."</p>
+  <p class="founder-attr">Lance Kennedy DNP, CRNA · Founder, Kenovus LLC · Newcastle, WA</p>
+</div>
+
+<!-- CTA -->
+<div id="contact" class="sec cta-sec">
+  <div class="sec-in">
+    <span class="lbl" style="display:block;text-align:center;margin-bottom:14px">Early Access</span>
+    <h2 style="text-align:center;max-width:580px;margin:0 auto 18px">Ready to connect<br><em>every point?</em></h2>
+    <p class="bt" style="margin:0 auto;text-align:center">We're onboarding founding clinic partners now. Founding partners receive priority onboarding, direct input into product development, and locked-in pricing for life.</p>
+    <div class="cta-btns">
+      <a href="mailto:lance@kenovus.app" class="btn-g">Request Early Access</a>
+      <a href="mailto:lance@kenovus.app" class="btn-s">Schedule a Demo</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="foot-wrap">
+  <footer>
+    <div class="foot-logo">Kenovus</div>
+    <div class="foot-mid">Connect Every Point · Optimize Every Life<br>Kenovus LLC · Newcastle, WA · © 2026</div>
+    <div class="foot-r">kenovus.com · kenovus.app</div>
+  </footer>
+</div>
+
+<!-- MODALS -->
+<div class="moverlay" id="m1" onclick="if(event.target===this)closeM('m1')">
+  <div class="mbox">
+    <button class="mclose" onclick="closeM('m1')">×</button>
+    <div class="mnum">68%</div>
+    <div class="mhl">Most patients never come back after their first visit.</div>
+    <p class="mbody">The American Med Spa Association found that 68% of aesthetic patients don't return after their initial appointment — not because they were unhappy, but because nothing kept them connected. No follow-up, no coaching, no reason compelling enough to rebook before life got in the way.</p>
+    <p class="mbody">Kenovus changes that. Smart reminders, AI coaching, and visible progress keep patients engaged between visits — and engaged patients rebook at dramatically higher rates.</p>
+    <div class="msrc">Source: American Med Spa Association — State of the Medical Spa Industry, 2024</div>
+  </div>
+</div>
+
+<div class="moverlay" id="m2" onclick="if(event.target===this)closeM('m2')">
+  <div class="mbox">
+    <button class="mclose" onclick="closeM('m2')">×</button>
+    <div class="mnum">Mid-Month</div>
+    <div class="mhl">You find out how last month went — sometime this month.</div>
+    <p class="mbody">Your Lead AR is doing manual tracking right now. That means she's spending time on reconciliation instead of patient-facing work. And without a real-time financial picture, tax season is a scramble and you can't spot trends until they're old news.</p>
+    <p class="mbody">The Kenovus financial dashboard gives you real-time revenue by category, automatic logging, monthly P&L, and one-click CPA export. It doesn't replace your AR — it makes her dramatically faster and frees her up for work that grows the practice.</p>
+    <div class="msrc">Source: MGMA Practice Operations Report, 2023</div>
+  </div>
+</div>
+
+<div class="moverlay" id="m3" onclick="if(event.target===this)closeM('m3')">
+  <div class="mbox">
+    <button class="mclose" onclick="closeM('m3')">×</button>
+    <div class="mnum">$111K+</div>
+    <div class="mhl">The revenue is already there. It's just not being captured.</div>
+    <p class="mbody">Based on 150 patients using Sona's own pricing. Every number is conservative.</p>
+    <div class="mmath">
+      <div class="mmath-row"><span class="ml">Skincare reorders (reminders convert 30% more)</span><span class="mr">+$18,000</span></div>
+      <div class="mmath-row"><span class="ml">Rebooked appointments (convert 20% of lost patients)</span><span class="mr">+$36,000</span></div>
+      <div class="mmath-row"><span class="ml">GLP-1 retention (patients stay 2 months longer)</span><span class="mr">+$24,000</span></div>
+      <div class="mmath-row"><span class="ml">Supplement subscriptions (40 patients × $35/mo)</span><span class="mr">+$16,800</span></div>
+      <div class="mmath-row"><span class="ml">Membership upgrades (15 patients)</span><span class="mr">+$9,000</span></div>
+      <div class="mmath-row"><span class="ml">Reduced no-shows via deposits</span><span class="mr">+$8,100</span></div>
+      <div class="mmath-row"><span class="ml">Conservative total — 150 patients</span><span class="mr">$111,900</span></div>
+    </div>
+    <p class="mbody">Not new patients. Not new treatments. The same people you already have — engaging more consistently because the app makes it effortless.</p>
+    <div class="msrc">Kenovus internal analysis — conservative assumptions, 150-patient practice, 2026</div>
+  </div>
+</div>
+
+<div class="moverlay" id="m4" onclick="if(event.target===this)closeM('m4')">
+  <div class="mbox">
+    <button class="mclose" onclick="closeM('m4')">×</button>
+    <div class="mnum">Day 1</div>
+    <div class="mhl">A clinical coach in their pocket from the moment they walk out.</div>
+    <p class="mbody">Every patient downloads your branded app before they leave the clinic. From that moment they have a 24/7 AI coach trained on your exact protocols — answering their questions, tracking their progress, keeping them accountable between visits.</p>
+    <p class="mbody">Not a generic wellness app. A coach that knows their medication, their InBody results, their skincare routine, and exactly what you told them at their last visit.</p>
+    <div class="msrc">Powered by Anthropic Claude — the same AI trusted by leading healthcare institutions worldwide</div>
+  </div>
+</div>
+
+<script>
+function openM(id){
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeM(id){
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow='';
+}
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    ['m1','m2','m3','m4'].forEach(closeM);
+  }
+});
+</script>
+</body>
+</html>
