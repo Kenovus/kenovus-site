@@ -113,8 +113,13 @@ footer{max-width:1060px;margin:0 auto;padding:36px 32px;display:flex;align-items
 .foot-mid,.foot-r{font-size:10px;line-height:1.7;text-align:center;color:rgba(240,234,224,0.28)}
 
 /* MODALS */
-.moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.90);z-index:999;align-items:center;justify-content:center;padding:20px}
-.moverlay.open{display:flex}
+.modal-toggle{display:none}
+.modal-bg-close{position:absolute;inset:0;cursor:pointer;display:block}
+.moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.90);z-index:999;align-items:center;justify-content:center;padding:20px;pointer-events:none}
+#t1:checked ~ #modal1,
+#t2:checked ~ #modal2,
+#t3:checked ~ #modal3,
+#t4:checked ~ #modal4{display:flex;pointer-events:all}
 .mbox{background:#110e07;border:1px solid rgba(201,168,76,0.30);border-radius:16px;padding:36px 28px;max-width:450px;width:100%;position:relative;max-height:88vh;overflow-y:auto}
 .mclose{position:absolute;top:12px;right:16px;font-size:24px;color:rgba(201,168,76,0.55);cursor:pointer;background:none;border:none;line-height:1;padding:4px}
 .mnum{font-family:'Cormorant Garamond',serif;font-size:50px;font-weight:300;color:#C9A84C;line-height:1;margin-bottom:8px}
@@ -275,26 +280,26 @@ footer{max-width:1060px;margin:0 auto;padding:36px 32px;display:flex;align-items
         <p class="bt">No follow-up. No coaching. No accountability between visits. For GLP-1 programs, InBody scanning, and aesthetic treatments — the gap between appointments is where results are lost, patients churn, and revenue walks out the door.</p>
       </div>
       <div class="stat-grid">
-        <div class="stat-card" onclick="openM('m1')">
+        <label for="t1" class="stat-card">
           <div class="stat-num">68%</div>
           <div class="stat-lbl">of aesthetic patients don't return after their first visit</div>
           <div class="stat-tap">Tap to learn more ›</div>
-        </div>
-        <div class="stat-card" onclick="openM('m2')">
+        </label>
+        <label for="t2" class="stat-card">
           <div class="stat-num">Mid-Month</div>
           <div class="stat-lbl">Most clinic owners find out what they made last month — mid-next-month</div>
           <div class="stat-tap">Tap to learn more ›</div>
-        </div>
-        <div class="stat-card" onclick="openM('m3')">
+        </label>
+        <label for="t3" class="stat-card">
           <div class="stat-num">$111K+</div>
           <div class="stat-lbl">in additional annual revenue sitting in your existing patient base</div>
           <div class="stat-tap">Tap to see the math ›</div>
-        </div>
-        <div class="stat-card" onclick="openM('m4')">
+        </label>
+        <label for="t4" class="stat-card">
           <div class="stat-num">Day 1</div>
           <div class="stat-lbl">your patients have a clinical coach in their pocket from the moment they leave</div>
           <div class="stat-tap">Tap to learn more ›</div>
-        </div>
+        </label>
       </div>
     </div>
   </div>
@@ -454,10 +459,16 @@ footer{max-width:1060px;margin:0 auto;padding:36px 32px;display:flex;align-items
   </footer>
 </div>
 
-<!-- MODALS -->
-<div class="moverlay" id="m1" onclick="if(event.target===this)closeM('m1')">
+<!-- MODALS - pure CSS, zero JavaScript required -->
+<input type="checkbox" id="t1" class="modal-toggle">
+<input type="checkbox" id="t2" class="modal-toggle">
+<input type="checkbox" id="t3" class="modal-toggle">
+<input type="checkbox" id="t4" class="modal-toggle">
+
+<div class="moverlay" id="modal1">
+  <label for="t1" class="modal-bg-close"></label>
   <div class="mbox">
-    <button class="mclose" onclick="closeM('m1')">×</button>
+    <label for="t1" class="mclose">×</label>
     <div class="mnum">68%</div>
     <div class="mhl">Most patients never come back after their first visit.</div>
     <p class="mbody">The American Med Spa Association found that 68% of aesthetic patients don't return after their initial appointment — not because they were unhappy, but because nothing kept them connected. No follow-up, no coaching, no reason compelling enough to rebook before life got in the way.</p>
@@ -466,9 +477,10 @@ footer{max-width:1060px;margin:0 auto;padding:36px 32px;display:flex;align-items
   </div>
 </div>
 
-<div class="moverlay" id="m2" onclick="if(event.target===this)closeM('m2')">
+<div class="moverlay" id="modal2">
+  <label for="t2" class="modal-bg-close"></label>
   <div class="mbox">
-    <button class="mclose" onclick="closeM('m2')">×</button>
+    <label for="t2" class="mclose">×</label>
     <div class="mnum">Mid-Month</div>
     <div class="mhl">You find out how last month went — sometime this month.</div>
     <p class="mbody">Your Lead AR is doing manual tracking right now. That means she's spending time on reconciliation instead of patient-facing work. And without a real-time financial picture, tax season is a scramble and you can't spot trends until they're old news.</p>
@@ -477,17 +489,18 @@ footer{max-width:1060px;margin:0 auto;padding:36px 32px;display:flex;align-items
   </div>
 </div>
 
-<div class="moverlay" id="m3" onclick="if(event.target===this)closeM('m3')">
+<div class="moverlay" id="modal3">
+  <label for="t3" class="modal-bg-close"></label>
   <div class="mbox">
-    <button class="mclose" onclick="closeM('m3')">×</button>
+    <label for="t3" class="mclose">×</label>
     <div class="mnum">$111K+</div>
-    <div class="mhl">The revenue is already there. It's just not being captured.</div>
+    <div class="mhl">The revenue is already there. It is just not being captured.</div>
     <p class="mbody">Based on 150 patients using Sona's own pricing. Every number is conservative.</p>
     <div class="mmath">
       <div class="mmath-row"><span class="ml">Skincare reorders (reminders convert 30% more)</span><span class="mr">+$18,000</span></div>
       <div class="mmath-row"><span class="ml">Rebooked appointments (convert 20% of lost patients)</span><span class="mr">+$36,000</span></div>
       <div class="mmath-row"><span class="ml">GLP-1 retention (patients stay 2 months longer)</span><span class="mr">+$24,000</span></div>
-      <div class="mmath-row"><span class="ml">Supplement subscriptions (40 patients × $35/mo)</span><span class="mr">+$16,800</span></div>
+      <div class="mmath-row"><span class="ml">Supplement subscriptions (40 patients x $35/mo)</span><span class="mr">+$16,800</span></div>
       <div class="mmath-row"><span class="ml">Membership upgrades (15 patients)</span><span class="mr">+$9,000</span></div>
       <div class="mmath-row"><span class="ml">Reduced no-shows via deposits</span><span class="mr">+$8,100</span></div>
       <div class="mmath-row"><span class="ml">Conservative total — 150 patients</span><span class="mr">$111,900</span></div>
@@ -497,14 +510,15 @@ footer{max-width:1060px;margin:0 auto;padding:36px 32px;display:flex;align-items
   </div>
 </div>
 
-<div class="moverlay" id="m4" onclick="if(event.target===this)closeM('m4')">
+<div class="moverlay" id="modal4">
+  <label for="t4" class="modal-bg-close"></label>
   <div class="mbox">
-    <button class="mclose" onclick="closeM('m4')">×</button>
+    <label for="t4" class="mclose">×</label>
     <div class="mnum">Day 1</div>
     <div class="mhl">A clinical coach in their pocket from the moment they walk out.</div>
     <p class="mbody">Every patient downloads your branded app before they leave the clinic. From that moment they have a 24/7 AI coach trained on your exact protocols — answering their questions, tracking their progress, keeping them accountable between visits.</p>
     <p class="mbody">Not a generic wellness app. A coach that knows their medication, their InBody results, their skincare routine, and exactly what you told them at their last visit.</p>
-    <div class="msrc">Powered by Anthropic Claude — the same AI trusted by leading healthcare institutions worldwide</div>
+    <div class="msrc">Powered by Anthropic Claude — trusted by leading healthcare institutions worldwide</div>
   </div>
 </div>
 
@@ -526,22 +540,11 @@ function submitWL(){
     note.style.color='#C9A84C';
     return;
   }
-  window.location.href='mailto:lance@kenovus.app?subject=Waitlist%3A%20'+encodeURIComponent(email)+'&body=Please%20add%20'+encodeURIComponent(email)+'%20to%20the%20Kenovus%20early%20access%20waitlist.';
-  note.textContent='Thank you — we'll be in touch soon.';
+  window.location.href='mailto:lance@kenovus.app?subject=Waitlist: '+encodeURIComponent(email);
+  note.textContent='Thank you, we will be in touch soon.';
   note.style.color='#C9A84C';
   document.getElementById('wlemail').value='';
 }
-function openM(id){
-  document.getElementById(id).classList.add('open');
-  document.body.style.overflow='hidden';
-}
-function closeM(id){
-  document.getElementById(id).classList.remove('open');
-  document.body.style.overflow='';
-}
-document.addEventListener('keydown',function(e){
-  if(e.key==='Escape'){['m1','m2','m3','m4'].forEach(closeM);}
-});
 </script>
 </body>
 </html>
