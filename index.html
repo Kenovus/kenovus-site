@@ -537,20 +537,18 @@ footer{flex-direction:column;align-items:center;text-align:center}
 
 <script>
 function submitWL(){
-  var email = document.getElementById('wlemail').value;
-  var note = document.getElementById('wlnote');
-  if(!email || !email.includes('@')){
-    note.textContent = 'Please enter a valid email address.';
-    note.style.color = '#C9A84C';
+  var email=document.getElementById('wlemail').value;
+  var note=document.getElementById('wlnote');
+  if(!email||!email.includes('@')){
+    note.textContent='Please enter a valid email address.';
+    note.style.color='#C9A84C';
     return;
   }
-  // Opens email client with the address pre-filled — works without a backend
-  window.location.href = 'mailto:lance@kenovus.app?subject=Waitlist: ' + encodeURIComponent(email) + '&body=Please add ' + encodeURIComponent(email) + ' to the Kenovus early access waitlist.';
-  note.textContent = 'Thank you — we'll be in touch soon.';
-  note.style.color = '#C9A84C';
-  document.getElementById('wlemail').value = '';
+  window.location.href='mailto:lance@kenovus.app?subject=Waitlist%3A%20'+encodeURIComponent(email)+'&body=Please%20add%20'+encodeURIComponent(email)+'%20to%20the%20Kenovus%20early%20access%20waitlist.';
+  note.textContent='Thank you — we'll be in touch soon.';
+  note.style.color='#C9A84C';
+  document.getElementById('wlemail').value='';
 }
-document.addEventListener('keydown',function(e){
 function openM(id){
   document.getElementById(id).classList.add('open');
   document.body.style.overflow='hidden';
@@ -559,9 +557,8 @@ function closeM(id){
   document.getElementById(id).classList.remove('open');
   document.body.style.overflow='';
 }
-['m1','m2','m3','m4'].forEach(function(id){
-  var el=document.getElementById(id);
-  if(el) el.addEventListener('click',function(e){if(e.target===el)closeM(id);});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){['m1','m2','m3','m4'].forEach(closeM);}
 });
 </script>
 
