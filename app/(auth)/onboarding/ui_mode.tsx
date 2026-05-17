@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,21 +6,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { colors, typography } from '@/constants/designSystem';
 import { useAuth } from '@/hooks/useAuth';
-import { setUserUiMode } from '@/lib/onboarding/patient';
+import {
+  fetchOnboardingContext,
+  fetchPatientIdForAuthUser,
+  setUserUiMode,
+} from '@/lib/onboarding/patient';
 import type { UIMode } from '@/types/user';
 
 export default function OnboardingUiMode() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, refreshProfile } = useAuth();
-  const [mode, setMode] = useState<UIMode | null>(null);
+  const [mode, setMode] = useState<UIMode>('guided');
   const [busy, setBusy] = useState(false);
 
   const saveAndNext = async () => {
-    if (!mode || !user) {
-      Alert.alert('Choose one', 'Pick how you like to use the app — you can change this anytime.');
-      return;
-    }
+    if (!user) return;
     setBusy(true);
     try {
       const { error } = await setUserUiMode(user.id, mode);
@@ -29,6 +30,12 @@ export default function OnboardingUiMode() {
         return;
       }
       await refreshProfile();
+      const patientId = await fetchPatientIdForAuthUser(user.id);
+      const ctx = patientId ? await fetchOnboardingContext(patientId) : null;
+      if (ctx?.clinic_connection === 'consumer' && ctx.is_glp1_patient === false) {
+        router.replace('/(auth)/onboarding/consumer_persona' as Href);
+        return;
+      }
       router.replace('/(auth)/onboarding/complete');
     } finally {
       setBusy(false);
@@ -43,21 +50,26 @@ export default function OnboardingUiMode() {
 
       <Pressable
         onPress={() => setMode('guided')}
-        style={[styles.card, mode === 'guided' && styles.cardOn]}>
+        style={[styles.primaryCard, mode === 'guided' && styles.primaryCardOn]}>
         <Text style={styles.emoji}>🤝</Text>
-        <Text style={styles.cardTitle}>Guide me through it</Text>
-        <Text style={styles.cardSub}>I prefer simple and clear</Text>
+        <Text style={styles.primaryTitle}>Guide me</Text>
+        <Text style={styles.recommended}>Recommended</Text>
+        <Text style={styles.primarySub}>Simple home screen with My Coach and key steps upfront</Text>
       </Pressable>
 
       <Pressable
         onPress={() => setMode('explorer')}
-        style={[styles.card, mode === 'explorer' && styles.cardOn]}>
-        <Text style={styles.emoji}>🗂</Text>
-        <Text style={styles.cardTitle}>I&apos;ll explore on my own</Text>
-        <Text style={styles.cardSub}>I like seeing all the data</Text>
+        style={styles.selfGuidedWrap}
+        hitSlop={8}>
+        <Text
+          style={[styles.selfGuidedText, mode === 'explorer' && styles.selfGuidedTextSelected]}
+          numberOfLines={2}>
+          I prefer Self-Guided
+        </Text>
+        <Text style={styles.selfGuidedHint}>Full tabs, progress, nutrition, and more</Text>
       </Pressable>
 
-      <Text style={styles.hint}>You can change this anytime in Settings.</Text>
+      <Text style={styles.hint}>You can change this anytime in Profile.</Text>
 
       <Button loading={busy} onPress={() => void saveAndNext()} variant="primary">
         Continue
@@ -85,34 +97,67 @@ const styles = StyleSheet.create({
   body: {
     ...typography.body,
     color: colors.gray1,
-    marginBottom: 20,
+    marginBottom: 18,
   },
-  card: {
+  primaryCard: {
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.goldDim,
-    padding: 20,
-    marginBottom: 14,
+    padding: 22,
+    marginBottom: 16,
     backgroundColor: colors.darkCard,
   },
-  cardOn: {
+  primaryCardOn: {
     borderColor: colors.gold,
-    backgroundColor: 'rgba(201,168,76,0.12)',
+    backgroundColor: 'rgba(201,168,76,0.14)',
   },
   emoji: {
     fontSize: 28,
     marginBottom: 10,
   },
-  cardTitle: {
+  primaryTitle: {
     ...typography.body,
     color: colors.white,
-    fontSize: 18,
-    marginBottom: 6,
+    fontSize: 22,
+    marginBottom: 4,
+    fontWeight: '600',
   },
-  cardSub: {
+  recommended: {
+    ...typography.label,
+    color: colors.goldLight,
+    fontSize: 12,
+    letterSpacing: 1.2,
+    marginBottom: 8,
+  },
+  primarySub: {
     ...typography.body,
     color: colors.gray1,
-    fontSize: 14,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  selfGuidedWrap: {
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    maxWidth: '100%',
+  },
+  selfGuidedText: {
+    fontFamily: 'Jost_300Light',
+    fontSize: 15,
+    color: colors.gray2,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+  selfGuidedTextSelected: {
+    color: colors.goldLight,
+  },
+  selfGuidedHint: {
+    ...typography.body,
+    color: colors.gray2,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
   },
   hint: {
     ...typography.body,

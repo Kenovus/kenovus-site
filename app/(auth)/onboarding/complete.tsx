@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/Button';
 import { colors, typography } from '@/constants/designSystem';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchPatientIdForAuthUser, setPatientOnboardingComplete } from '@/lib/onboarding/patient';
-import { useAuthStore } from '@/stores/authStore';
 
 export default function OnboardingComplete() {
   const router = useRouter();
@@ -39,8 +38,7 @@ export default function OnboardingComplete() {
         return;
       }
       await refreshProfile();
-      const mode = useAuthStore.getState().profile?.ui_mode;
-      router.replace(mode === 'guided' ? '/patient/guided-home' : '/patient/dashboard');
+      router.replace('/patient/home' as Href);
     } finally {
       setBusy(false);
     }
@@ -105,7 +103,7 @@ const styles = StyleSheet.create({
     color: colors.gold,
   },
   ringValue: {
-    fontFamily: 'CormorantGaramond_300Light',
+    fontFamily: 'PTSerif_400Regular',
     fontSize: 48,
     color: colors.white,
     marginTop: 6,

@@ -5,14 +5,16 @@ import {
   StyleSheet,
   Text,
   type PressableProps,
+  type TextStyle,
 } from 'react-native';
 
-import { colors, typography } from '@/constants/designSystem';
+import { useAppTheme } from '@/lib/theme/ThemeProvider';
 
 type Props = PressableProps & {
   children: ReactNode;
   variant?: 'primary' | 'ghost';
   loading?: boolean;
+  labelStyle?: TextStyle;
 };
 
 export function Button({
@@ -21,9 +23,12 @@ export function Button({
   loading,
   disabled,
   style,
+  labelStyle,
   ...rest
 }: Props) {
+  const { tokens } = useAppTheme();
   const isPrimary = variant === 'primary';
+  const styles = createStyles(tokens);
   return (
     <Pressable
       accessibilityRole="button"
@@ -37,9 +42,9 @@ export function Button({
       ]}
       {...rest}>
       {loading ? (
-        <ActivityIndicator color={isPrimary ? colors.dark : colors.gold} />
+        <ActivityIndicator color={isPrimary ? tokens.colors.background : tokens.colors.textMuted} />
       ) : (
-        <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelGhost]}>
+        <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelGhost, labelStyle]}>
           {children}
         </Text>
       )}
@@ -47,37 +52,38 @@ export function Button({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    minHeight: 52,
-    borderRadius: 12,
+const createStyles = (tokens: ReturnType<typeof useAppTheme>['tokens']) =>
+  StyleSheet.create({
+    base: {
+    minHeight: 56,
+    borderRadius: tokens.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
   primary: {
-    backgroundColor: colors.gold,
+    backgroundColor: tokens.colors.accent,
+    borderWidth: 1,
+    borderColor: tokens.colors.accent,
   },
   primaryPressed: {
     opacity: 0.92,
   },
   ghost: {
-    backgroundColor: 'transparent',
+    backgroundColor: tokens.colors.surface,
     borderWidth: 1,
-    borderColor: colors.goldDim,
+    borderColor: tokens.colors.border,
   },
   disabled: {
     opacity: 0.45,
   },
   label: {
-    ...typography.body,
-    fontSize: 16,
-    letterSpacing: 0.5,
+    ...tokens.typography.button,
   },
   labelPrimary: {
-    color: colors.dark,
+    color: '#241B0A',
   },
   labelGhost: {
-    color: colors.goldLight,
+    color: tokens.colors.text,
   },
 });

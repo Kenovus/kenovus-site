@@ -1,27 +1,29 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as LocalAuthentication from 'expo-local-authentication';
 import { Link, useRouter } from 'expo-router';
+import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
+  ImageBackground,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { colors, typography } from '@/constants/designSystem';
 import { getPostAuthHref, isPatientFacingRole } from '@/lib/authRouting';
 import { useAuth } from '@/hooks/useAuth';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { useAppTheme } from '@/lib/theme/ThemeProvider';
 import { useAuthStore } from '@/stores/authStore';
 
 const BIOMETRIC_PREF_KEY = 'sonalife_biometric_enabled';
@@ -36,6 +38,8 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { tokens } = useAppTheme();
+  const styles = createStyles(tokens);
   const { signIn, requestPasswordReset } = useAuth();
   const [submitting, setSubmitting] = useState(false);
 
@@ -67,16 +71,14 @@ export default function LoginScreen() {
   const navigateAfterAuth = () => {
     const profile = useAuthStore.getState().profile;
     const patientOnboardingComplete = useAuthStore.getState().patientOnboardingComplete;
+    const superAdminViewMode = useAuthStore.getState().superAdminViewMode;
     if (!profile) {
-      Alert.alert(
-        'Account setup',
-        'Your login worked, but no Kenovus profile was found. Ask your clinic to finish provisioning, or contact support.',
-      );
+      router.replace('/(auth)/account-recovery');
       return;
     }
     const onboardingComplete =
       !isPatientFacingRole(profile.role) || patientOnboardingComplete === true;
-    router.replace(getPostAuthHref(profile, onboardingComplete));
+    router.replace(getPostAuthHref(profile, onboardingComplete, superAdminViewMode));
   };
 
   const onSubmit = handleSubmit(async ({ email, password }) => {
@@ -110,117 +112,175 @@ export default function LoginScreen() {
     })();
   };
 
+  const ph = tokens.colors.textCaption;
+
   return (
-    <KeyboardAvoidingView
-      style={[styles.screen, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 16 }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.subtitle}>SonaLife · Kenovus</Text>
-        {!isSupabaseConfigured ? (
-          <Text style={styles.envWarn}>
-            Supabase is not configured. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to
-            .env, then restart with npx expo start -c
-          </Text>
-        ) : null}
-      </View>
+    <ImageBackground source={require('@/assets/images/sonalife-splash.png')} style={styles.screen} resizeMode="cover">
+      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View
+          style={[
+            styles.content,
+            {
+              paddingTop: insets.top + 32,
+              paddingBottom: Math.max(insets.bottom, 16) + 16,
+            },
+          ]}>
+          <View style={styles.topBlock}>
+            <View style={styles.hero}>
+              <Text style={styles.wordmark}>KENOVUS</Text>
+              <Text style={styles.tagline}>Sign in to SonaLife</Text>
+              {!isSupabaseConfigured ? (
+                <Text style={styles.envWarn}>
+                  Supabase is not configured. Add EXPO_PUBLIC_SUPABASE_URL and
+                  EXPO_PUBLIC_SUPABASE_ANON_KEY to .env, then restart with npx expo start -c
+                </Text>
+              ) : null}
+            </View>
 
-      <Card style={styles.card}>
-        <Text style={styles.label}>Email</Text>
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              autoCapitalize="none"
-              autoComplete="email"
-              autoCorrect={false}
-              keyboardType="email-address"
-              onBlur={onBlur}
-              onChangeText={onChange}
-              placeholder="you@example.com"
-              placeholderTextColor={colors.gray2}
-              style={styles.input}
-              value={value}
+            <View style={styles.formBlock}>
+            <Text style={styles.label}>Email</Text>
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    placeholder="you@example.com"
+                    placeholderTextColor={ph}
+                    style={styles.input}
+                    value={value}
+                  />
+                </View>
+              )}
             />
-          )}
-        />
-        {errors.email ? <Text style={styles.error}>{errors.email.message}</Text> : null}
+            {errors.email ? <Text style={styles.error}>{errors.email.message}</Text> : null}
 
-        <Text style={[styles.label, styles.labelSpaced]}>Password</Text>
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              autoCapitalize="none"
-              autoComplete="password"
-              onBlur={onBlur}
-              onChangeText={onChange}
-              placeholder="••••••••"
-              placeholderTextColor={colors.gray2}
-              secureTextEntry
-              style={styles.input}
-              value={value}
+            <Text style={[styles.label, styles.labelSpaced]}>Password</Text>
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    autoCapitalize="none"
+                    autoComplete="password"
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    placeholder="••••••••"
+                    placeholderTextColor={ph}
+                    secureTextEntry
+                    style={styles.input}
+                    value={value}
+                  />
+                </View>
+              )}
             />
-          )}
-        />
-        {errors.password ? <Text style={styles.error}>{errors.password.message}</Text> : null}
+            {errors.password ? <Text style={styles.error}>{errors.password.message}</Text> : null}
 
-        <Button
-          loading={submitting}
-          onPress={onSubmit}
-          style={styles.submit}
-          variant="primary">
-          Continue
-        </Button>
+            <Pressable
+              accessibilityRole="button"
+              disabled={submitting}
+              onPress={onSubmit}
+              style={[styles.submit, submitting && styles.submitDisabled]}>
+              {submitting ? (
+                <ActivityIndicator color={tokens.colors.accent} />
+              ) : (
+                <Text style={styles.submitLabel}>Continue</Text>
+              )}
+            </Pressable>
 
-        <Text onPress={onForgotPassword} style={styles.forgot}>
-          Forgot password
-        </Text>
-      </Card>
+            <Text onPress={onForgotPassword} style={styles.forgot}>
+              Forgot password
+            </Text>
+          </View>
 
-      <Text style={styles.registerRow}>
-        New here?{' '}
-        <Link href="/(auth)/register" style={styles.link}>
-          Create an account
-        </Link>
-      </Text>
-    </KeyboardAvoidingView>
+            <Text style={styles.registerRow}>
+              New here?{' '}
+              <Link href="/(auth)/register" style={styles.link}>
+                Create an account
+              </Link>
+            </Text>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (tokens: ReturnType<typeof useAppTheme>['tokens']) => {
+  const colors = {
+    gold: tokens.colors.accent,
+    gray1: tokens.colors.textMuted,
+    gray2: tokens.colors.textCaption,
+    warning: tokens.colors.warning,
+    white: tokens.colors.text,
+    danger: tokens.colors.danger,
+  };
+  const typography = {
+    h1: tokens.typography.h1,
+    tagline: tokens.typography.secondary,
+    body: tokens.typography.body,
+    label: tokens.typography.label,
+  };
+  return StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.dark,
-    paddingHorizontal: 24,
+    width: '100%',
+    height: '100%',
   },
-  header: {
-    marginBottom: 28,
+  content: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'flex-start',
+    paddingHorizontal: tokens.spacing.pageX,
   },
-  title: {
+  topBlock: {
+    width: '100%',
+    flex: 1,
+  },
+  hero: {
+    alignItems: 'center',
+    marginBottom: tokens.spacing.xl,
+    gap: 12,
+  },
+  wordmark: {
     ...typography.h1,
-    color: colors.white,
-    marginBottom: 8,
+    fontSize: 46,
+    color: colors.gold,
+    letterSpacing: 8,
+    textAlign: 'center',
   },
-  subtitle: {
-    ...typography.body,
+  tagline: {
+    ...typography.tagline,
     color: colors.gray1,
+    textAlign: 'center',
   },
   envWarn: {
     ...typography.body,
     color: colors.warning,
-    fontSize: 13,
-    marginTop: 12,
-    lineHeight: 18,
+    marginTop: 8,
+    lineHeight: 24,
+    textAlign: 'center',
+    paddingHorizontal: 8,
   },
-  card: {
-    marginBottom: 24,
+  formBlock: {
+    marginBottom: 0,
+    backgroundColor: tokens.colors.surface,
+    borderWidth: 1,
+    borderColor: tokens.colors.border,
+    borderRadius: tokens.radius.lg,
+    padding: 16,
   },
   label: {
     ...typography.label,
-    color: colors.gold,
+    textTransform: 'uppercase',
+    color: colors.gray2,
     marginBottom: 8,
   },
   labelSpaced: {
@@ -229,38 +289,59 @@ const styles = StyleSheet.create({
   input: {
     ...typography.body,
     color: colors.white,
+    borderWidth: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: 'transparent',
+  },
+  inputContainer: {
     borderWidth: 1,
-    borderColor: colors.goldDim,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    backgroundColor: colors.dark2,
+    borderColor: tokens.colors.border,
+    borderRadius: tokens.radius.md,
+    backgroundColor: tokens.colors.backgroundElevated,
   },
   error: {
     ...typography.body,
     color: colors.danger,
-    marginTop: 6,
-    fontSize: 13,
+    marginTop: 8,
+    fontSize: 16,
   },
   submit: {
     marginTop: 24,
     width: '100%',
+    minHeight: 52,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    borderColor: tokens.colors.accent,
+    backgroundColor: tokens.colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitDisabled: {
+    opacity: 0.55,
+  },
+  submitLabel: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 17,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    color: '#241B0A',
   },
   forgot: {
     ...typography.body,
     color: colors.gray2,
     textAlign: 'center',
     marginTop: 16,
-    fontSize: 13,
-    textDecorationLine: 'underline',
   },
   registerRow: {
     ...typography.body,
-    color: colors.gray1,
+    color: colors.gray2,
     textAlign: 'center',
+    marginTop: 24,
   },
   link: {
-    color: colors.goldLight,
+    color: colors.gold,
     textDecorationLine: 'underline',
   },
 });
+};

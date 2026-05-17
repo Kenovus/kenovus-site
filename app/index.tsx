@@ -1,12 +1,9 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, typography } from '@/constants/designSystem';
+import { SonaSplashScreen } from '@/components/SonaSplashScreen';
 import { getPostAuthHref, isPatientFacingRole } from '@/lib/authRouting';
 import { useAuthStore } from '@/stores/authStore';
-
-const SPLASH_MS = 2000;
 
 export default function Index() {
   const initialized = useAuthStore((s) => s.initialized);
@@ -14,20 +11,37 @@ export default function Index() {
   const profile = useAuthStore((s) => s.profile);
   const profileReady = useAuthStore((s) => s.profileReady);
   const patientOnboardingComplete = useAuthStore((s) => s.patientOnboardingComplete);
+  const superAdminViewMode = useAuthStore((s) => s.superAdminViewMode);
+  const [minSplashElapsed, setMinSplashElapsed] = useState(false);
+  const [routeReady, setRouteReady] = useState(false);
+  const [slowAuthSpinner, setSlowAuthSpinner] = useState(false);
 
-  const [splashDone, setSplashDone] = useState(false);
+  const authBootstrapDone = initialized && (!session || profileReady);
 
   useEffect(() => {
-    const t = setTimeout(() => setSplashDone(true), SPLASH_MS);
+    const t = setTimeout(() => setMinSplashElapsed(true), 1500);
     return () => clearTimeout(t);
   }, []);
 
-  if (!initialized || !splashDone || !profileReady) {
-    return (
-      <View style={styles.splash}>
-        <Text style={styles.wordmark}>SonaLife</Text>
-      </View>
-    );
+  useEffect(() => {
+    if (authBootstrapDone) {
+      setSlowAuthSpinner(false);
+      return;
+    }
+    const t = setTimeout(() => {
+      setSlowAuthSpinner(true);
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [authBootstrapDone]);
+
+  useEffect(() => {
+    if (authBootstrapDone && minSplashElapsed) {
+      setRouteReady(true);
+    }
+  }, [authBootstrapDone, minSplashElapsed]);
+
+  if (!routeReady) {
+    return <SonaSplashScreen />;
   }
 
   if (!session) {
@@ -35,25 +49,11 @@ export default function Index() {
   }
 
   if (!profile) {
-    return <Redirect href="/(auth)/login" />;
+    return <Redirect href="/(auth)/account-recovery" />;
   }
 
   const onboardingComplete =
     !isPatientFacingRole(profile.role) || patientOnboardingComplete === true;
 
-  return <Redirect href={getPostAuthHref(profile, onboardingComplete)} />;
+  return <Redirect href={getPostAuthHref(profile, onboardingComplete, superAdminViewMode)} />;
 }
-
-const styles = StyleSheet.create({
-  splash: {
-    flex: 1,
-    backgroundColor: colors.black,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wordmark: {
-    ...typography.h1,
-    color: colors.gold,
-    letterSpacing: 4,
-  },
-});

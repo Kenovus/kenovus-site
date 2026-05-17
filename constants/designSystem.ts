@@ -1,41 +1,41 @@
-import type { TextStyle } from 'react-native';
+import { themeTokens } from '@/lib/theme/tokens';
+
+/**
+ * Backward-compatible exports while screens migrate to `useAppTheme()`.
+ * Defaults to dark palette to avoid sudden regressions.
+ */
+const t = themeTokens.dark;
 
 export const colors = {
-  black: '#000000',
-  dark: '#0A0806',
-  dark2: '#110E06',
-  darkCard: '#141009',
-  gold: '#C9A84C',
-  goldLight: '#E2C97E',
-  goldDim: 'rgba(201,168,76,0.35)',
-  white: '#F5F0E8',
-  gray1: 'rgba(245,240,232,0.75)',
-  gray2: 'rgba(245,240,232,0.55)',
-  success: '#4CAF50',
-  warning: '#FF9800',
-  danger: '#F44336',
+  black: t.colors.background,
+  dark: t.colors.background,
+  dark2: t.colors.backgroundElevated,
+  darkCard: t.colors.surface,
+  gold: t.colors.accent,
+  goldLight: '#D4BC72',
+  goldDim: t.colors.border,
+  white: t.colors.text,
+  gray1: t.colors.textMuted,
+  gray2: t.colors.textCaption,
+  success: t.colors.success,
+  warning: t.colors.warning,
+  danger: t.colors.danger,
+  navy: t.colors.navy,
+  burntOrange: t.colors.burntOrange,
+  coral: t.colors.coral,
 } as const;
 
 export const typography = {
-  display: {
-    fontFamily: 'CormorantGaramond_300Light',
-    fontSize: 48,
-  } satisfies TextStyle,
-  h1: {
-    fontFamily: 'CormorantGaramond_300Light',
-    fontSize: 36,
-  } satisfies TextStyle,
-  h2: {
-    fontFamily: 'CormorantGaramond_300Light',
-    fontSize: 28,
-  } satisfies TextStyle,
-  body: {
-    fontFamily: 'Jost_300Light',
-    fontSize: 15,
-  } satisfies TextStyle,
+  display: t.typography.display,
+  h1: t.typography.h1,
+  h2: t.typography.h2,
+  body: t.typography.body,
+  tagline: {
+    ...t.typography.body,
+    fontFamily: 'DMSans_400Regular',
+  },
   label: {
-    fontFamily: 'Jost_300Light',
-    fontSize: 10,
-    letterSpacing: 3,
-  } satisfies TextStyle,
+    ...t.typography.label,
+    letterSpacing: 1.1,
+  },
 } as const;

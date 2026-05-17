@@ -5,10 +5,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { colors, typography } from '@/constants/designSystem';
+import { useAuth } from '@/hooks/useAuth';
+import { canSyncWearables, isConsumer } from '@/lib/consumerTier';
 
 export default function OnboardingWearables() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { profile, patientOnboardingComplete } = useAuth();
+  const consumer = isConsumer(profile);
+  const syncLater = consumer && !canSyncWearables(profile);
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 16 }]}>
@@ -19,9 +24,17 @@ export default function OnboardingWearables() {
         and we&apos;ll fill in your daily score automatically.
       </Text>
 
+      {syncLater ? (
+        <Text style={styles.notice}>
+          Wearable sync unlocks on Core and GLP-1+ after you choose your plan. You can upgrade anytime from
+          Profile → Plans
+          {patientOnboardingComplete ? '' : ' after onboarding'}.
+        </Text>
+      ) : null}
+
       <Card style={styles.card}>
         <Text style={styles.device}>Apple Health — steps, sleep, heart rate, HRV, weight</Text>
-        <Text style={styles.deviceMuted}>Oura · Whoop · Fitbit — coming next in the build order</Text>
+        <Text style={styles.deviceMuted}>Oura · Whoop · Fitbit — OAuth + ingestion available from Profile → Wearables</Text>
       </Card>
 
       <Button onPress={() => router.replace('/(auth)/onboarding/referral')} variant="primary">
@@ -58,6 +71,13 @@ const styles = StyleSheet.create({
     color: colors.gray1,
     lineHeight: 22,
     marginBottom: 22,
+  },
+  notice: {
+    ...typography.body,
+    color: colors.goldLight,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
   },
   card: {
     marginBottom: 24,

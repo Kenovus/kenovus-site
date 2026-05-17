@@ -1,21 +1,34 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { colors, typography } from '@/constants/designSystem';
+import { useAuth } from '@/hooks/useAuth';
+import { applyReferralCodeAtOnboarding } from '@/lib/referrals';
 
 export default function OnboardingReferral() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [hasReferral, setHasReferral] = useState<boolean | null>(null);
   const [referralCode, setReferralCode] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const next = () => {
-    if (hasReferral && referralCode.trim()) {
-      /* Week 4: insert into referrals with referred_by_code */
+  const next = async () => {
+    if (hasReferral && referralCode.trim() && user) {
+      setBusy(true);
+      try {
+        const result = await applyReferralCodeAtOnboarding(user.id, referralCode);
+        if (!result.ok) {
+          Alert.alert('Referral code', result.message);
+          return;
+        }
+      } finally {
+        setBusy(false);
+      }
     }
     router.replace('/(auth)/onboarding/ui_mode');
   };
@@ -56,10 +69,10 @@ export default function OnboardingReferral() {
         </Card>
       ) : null}
 
-      <Button onPress={next} variant="primary">
+      <Button loading={busy} onPress={() => void next()} variant="primary">
         Continue
       </Button>
-      <Button onPress={next} style={styles.skip} variant="ghost">
+      <Button loading={busy} onPress={() => void next()} style={styles.skip} variant="ghost">
         Skip
       </Button>
     </View>

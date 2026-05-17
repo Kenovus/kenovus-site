@@ -25,9 +25,14 @@ export type PatientOnboardingContextRow = {
   glp1_medication: string | null;
   glp1_dose: string | null;
   clinic_connection: ClinicConnection | null;
+  non_glp1_track?: 'hormone_optimization' | 'fitness_recomp' | 'wellness' | null;
   completed_at?: string;
 };
 
+/**
+ * Navigation mode: default Guided when `ui_mode` is null, guided, or anything other than the
+ * self-guided value stored as `'explorer'` in Supabase.
+ */
 export function normalizeUiMode(profile: UserProfile | null): 'guided' | 'explorer' {
-  return profile?.ui_mode === 'guided' ? 'guided' : 'explorer';
+  return profile?.ui_mode === 'explorer' ? 'explorer' : 'guided';
 }

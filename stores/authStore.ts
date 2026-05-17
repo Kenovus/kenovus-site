@@ -7,11 +7,13 @@ type AuthState = {
   session: Session | null;
   profile: UserProfile | null;
   patientOnboardingComplete: boolean | null;
+  superAdminViewMode: 'admin' | 'patient';
   initialized: boolean;
   profileReady: boolean;
   setSession: (session: Session | null) => void;
   setProfile: (profile: UserProfile | null) => void;
   setPatientOnboardingComplete: (value: boolean | null) => void;
+  setSuperAdminViewMode: (value: 'admin' | 'patient') => void;
   setInitialized: (value: boolean) => void;
   setProfileReady: (value: boolean) => void;
   reset: () => void;
@@ -21,12 +23,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   session: null,
   profile: null,
   patientOnboardingComplete: null,
+  superAdminViewMode: 'admin',
   initialized: false,
   profileReady: false,
   setSession: (session) => set({ session }),
   setProfile: (profile) => set({ profile }),
   setPatientOnboardingComplete: (patientOnboardingComplete) =>
     set({ patientOnboardingComplete }),
+  setSuperAdminViewMode: (superAdminViewMode) => set({ superAdminViewMode }),
   setInitialized: (initialized) => set({ initialized }),
   setProfileReady: (profileReady) => set({ profileReady }),
   reset: () =>
@@ -34,6 +38,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       session: null,
       profile: null,
       patientOnboardingComplete: null,
+      superAdminViewMode: 'admin',
       profileReady: true,
     }),
 }));

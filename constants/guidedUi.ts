@@ -1,13 +1,13 @@
-/** Brief §11h — Guided mode accessibility targets */
+/** Guided mode accessibility targets (sizes +20% vs prior baseline). */
 export const guidedTabBar = {
-  minHeight: 62,
-  labelFontSize: 13,
-  iconSize: 26,
+  minHeight: 74,
+  labelFontSize: 16,
+  iconSize: 31,
 } as const;
 
 export const guidedScreen = {
-  bodyFontSize: 18,
-  labelFontSize: 14,
-  buttonFontSize: 20,
-  minTapHeight: 56,
+  bodyFontSize: 22,
+  labelFontSize: 17,
+  buttonFontSize: 24,
+  minTapHeight: 67,
 } as const;

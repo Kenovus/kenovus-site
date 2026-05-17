@@ -1,23 +1,29 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRouter, type Href } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
-import { colors, typography } from '@/constants/designSystem';
 import { useAuth } from '@/hooks/useAuth';
 import { setUserUiMode } from '@/lib/onboarding/patient';
+import { useAppTheme } from '@/lib/theme/ThemeProvider';
 import type { UIMode } from '@/types/user';
 
 export default function ProfileUiModeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, profile, refreshProfile } = useAuth();
-  const [mode, setMode] = useState<UIMode | null>(profile?.ui_mode ?? 'explorer');
+  const { tokens } = useAppTheme();
+  const styles = createStyles(tokens);
+  const [mode, setMode] = useState<UIMode>('guided');
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    setMode(profile?.ui_mode === 'explorer' ? 'explorer' : 'guided');
+  }, [profile?.ui_mode]);
+
   const save = async () => {
-    if (!mode || !user) return;
+    if (!user) return;
     setBusy(true);
     try {
       const { error } = await setUserUiMode(user.id, mode);
@@ -26,7 +32,7 @@ export default function ProfileUiModeScreen() {
         return;
       }
       await refreshProfile();
-      router.replace(mode === 'guided' ? '/patient/guided-home' : '/patient/dashboard');
+      router.replace('/patient/home' as Href);
     } finally {
       setBusy(false);
     }
@@ -39,18 +45,20 @@ export default function ProfileUiModeScreen() {
 
       <Pressable
         onPress={() => setMode('guided')}
-        style={[styles.card, mode === 'guided' && styles.cardOn]}>
+        style={[styles.primaryCard, mode === 'guided' && styles.primaryCardOn]}>
         <Text style={styles.emoji}>🤝</Text>
-        <Text style={styles.cardTitle}>Guide me through it</Text>
-        <Text style={styles.cardSub}>I prefer simple and clear</Text>
+        <Text style={styles.primaryTitle}>Guide me</Text>
+        <Text style={styles.recommended}>Recommended</Text>
+        <Text style={styles.primarySub}>Simple home screen with My Coach and key steps upfront</Text>
       </Pressable>
 
-      <Pressable
-        onPress={() => setMode('explorer')}
-        style={[styles.card, mode === 'explorer' && styles.cardOn]}>
-        <Text style={styles.emoji}>🗂</Text>
-        <Text style={styles.cardTitle}>I&apos;ll explore on my own</Text>
-        <Text style={styles.cardSub}>I like seeing all the data</Text>
+      <Pressable onPress={() => setMode('explorer')} style={styles.selfGuidedWrap} hitSlop={8}>
+        <Text
+          style={[styles.selfGuidedText, mode === 'explorer' && styles.selfGuidedTextSelected]}
+          numberOfLines={2}>
+          I prefer Self-Guided
+        </Text>
+        <Text style={styles.selfGuidedHint}>Full tabs, progress, nutrition, and more</Text>
       </Pressable>
 
       <Button loading={busy} onPress={() => void save()} variant="primary">
@@ -63,48 +71,80 @@ export default function ProfileUiModeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (tokens: ReturnType<typeof useAppTheme>['tokens']) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.dark,
-    paddingHorizontal: 22,
+    backgroundColor: tokens.colors.background,
+    paddingHorizontal: tokens.spacing.pageX,
   },
   title: {
-    ...typography.h2,
-    color: colors.white,
+    ...tokens.typography.h2,
+    color: tokens.colors.text,
     marginBottom: 8,
   },
   body: {
-    ...typography.body,
-    color: colors.gray1,
-    marginBottom: 20,
+    ...tokens.typography.body,
+    color: tokens.colors.textMuted,
+    marginBottom: 18,
   },
-  card: {
-    borderRadius: 16,
+  primaryCard: {
+    borderRadius: tokens.radius.lg,
     borderWidth: 1,
-    borderColor: colors.goldDim,
-    padding: 18,
-    marginBottom: 12,
-    backgroundColor: colors.darkCard,
+    borderColor: tokens.colors.border,
+    padding: 20,
+    marginBottom: 14,
+    backgroundColor: tokens.colors.surface,
   },
-  cardOn: {
-    borderColor: colors.gold,
-    backgroundColor: 'rgba(201,168,76,0.12)',
+  primaryCardOn: {
+    borderColor: tokens.colors.accent,
+    backgroundColor: tokens.colors.accentSoft,
   },
   emoji: {
     fontSize: 26,
     marginBottom: 8,
   },
-  cardTitle: {
-    ...typography.body,
-    color: colors.white,
-    fontSize: 17,
+  primaryTitle: {
+    ...tokens.typography.body,
+    color: tokens.colors.text,
+    fontSize: 20,
     marginBottom: 4,
+    fontWeight: '600',
   },
-  cardSub: {
-    ...typography.body,
-    color: colors.gray1,
+  recommended: {
+    ...tokens.typography.label,
+    color: tokens.colors.accent,
+    fontSize: 11,
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  primarySub: {
+    ...tokens.typography.secondary,
+    color: tokens.colors.textMuted,
     fontSize: 14,
+    lineHeight: 20,
+  },
+  selfGuidedWrap: {
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  selfGuidedText: {
+    fontFamily: 'Jost_300Light',
+    fontSize: 15,
+    color: tokens.colors.textCaption,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+  selfGuidedTextSelected: {
+    color: tokens.colors.accent,
+  },
+  selfGuidedHint: {
+    ...tokens.typography.caption,
+    color: tokens.colors.textCaption,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
   },
   back: {
     marginTop: 10,

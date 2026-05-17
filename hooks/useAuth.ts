@@ -8,11 +8,15 @@ export function useAuth() {
   const session = useAuthStore((s) => s.session);
   const profile = useAuthStore((s) => s.profile);
   const patientOnboardingComplete = useAuthStore((s) => s.patientOnboardingComplete);
+  const superAdminViewMode = useAuthStore((s) => s.superAdminViewMode);
   const initialized = useAuthStore((s) => s.initialized);
 
-  const refreshProfile = useCallback(async () => {
-    await syncAuthProfile(session?.user ?? null);
-  }, [session?.user]);
+  const refreshProfile = useCallback(
+    async (opts?: { keepProfileReady?: boolean }) => {
+      await syncAuthProfile(session?.user ?? null, opts);
+    },
+    [session?.user],
+  );
 
   const signIn = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -45,7 +49,13 @@ export function useAuth() {
     user: session?.user ?? null,
     profile,
     patientOnboardingComplete,
+    superAdminViewMode,
     initialized,
+    setSuperAdminViewMode: useAuthStore.getState().setSuperAdminViewMode,
+    toggleSuperAdminSurface: () =>
+      useAuthStore
+        .getState()
+        .setSuperAdminViewMode(superAdminViewMode === 'admin' ? 'patient' : 'admin'),
     refreshProfile,
     signIn,
     signUp,
