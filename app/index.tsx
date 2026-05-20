@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { SonaSplashScreen } from '@/components/SonaSplashScreen';
 import { getPostAuthHref, isPatientFacingRole } from '@/lib/authRouting';
+import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 
 export default function Index() {
@@ -49,7 +50,29 @@ export default function Index() {
   }
 
   if (!profile) {
-    return <Redirect href="/(auth)/account-recovery" />;
+    // syncAuthProfile already tried to auto-create the profile. If it's still missing,
+    // attempt one more upsert here and route home — never block a logged-in user.
+    void supabase
+      .from('user_profiles')
+      .upsert(
+        {
+          auth_user_id: session.user.id,
+          role: 'consumer',
+          full_name: session.user.email?.split('@')[0] ?? 'User',
+          email: session.user.email ?? null,
+          consumer_tier: 'free',
+        },
+        { onConflict: 'auth_user_id', ignoreDuplicates: true },
+      )
+      .then(() => {
+        // Trigger a profile reload after the upsert
+        useAuthStore.getState().setProfileReady(false);
+        useAuthStore.getState().setProfileReady(true);
+      })
+      .catch((e) => console.warn('[index] profile fallback upsert failed:', e));
+
+    // Route to consumer home; the app will re-render once the profile loads
+    return <Redirect href="/patient/dashboard" />;
   }
 
   const onboardingComplete =

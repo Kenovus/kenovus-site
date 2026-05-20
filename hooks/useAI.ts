@@ -441,8 +441,11 @@ export function useAI() {
     setLoading(true);
     try {
       const now = new Date();
-      const dateKeywords = /\b(today|date|time|day|what day|what time|current date)\b/i;
-      if (dateKeywords.test(text)) {
+      // Only intercept messages that are explicitly asking about the date/time — not sentences that happen to contain "today"
+      const isDateTimeQuery =
+        /^(what('s| is)?\s+(today'?s?\s+)?(date|day|time)|current\s+(date|time)|what\s+day\s+is\s+it|what\s+time\s+is\s+it)\b/i.test(text.trim()) ||
+        (text.trim().length < 25 && /^(today|date|time|what day|what time)\??[.!]?$/i.test(text.trim()));
+      if (isDateTimeQuery) {
         const dateReply = `Today is ${now.toLocaleDateString('en-US', {
           weekday: 'long',
           year: 'numeric',
@@ -798,6 +801,11 @@ export function useAI() {
         user?.id ? buildSonaContext(user.id) : Promise.resolve(''),
         new Promise<string>((res) => setTimeout(() => res(''), 4000)),
       ]);
+
+      // Diagnostic: verify system prompt and context are present
+      console.log('SYSTEM PROMPT LENGTH:', SONA_SYSTEM_PROMPT.length);
+      console.log('CONTEXT:', sonaCtx.substring(0, 200));
+      console.log('USER MESSAGE:', text);
       console.log(`Sona context built: ${sonaCtx.length} chars`);
 
       // Patient context prefixes the user message; system prompt stays clean and cacheable
@@ -805,18 +813,14 @@ export function useAI() {
         ? `${sonaCtx}\n\nConversation so far:\n${context}\n\nUser: ${text}`
         : `${context}\nuser: ${text}`;
 
-      const systemMerged = SONA_SYSTEM_PROMPT;
-
       const startedAt = Date.now();
-      const conversationalRequest = {
-        system: systemMerged,
-        user: augmentedUser,
-        maxTokens: 500,  // increased for personalized "how this applies to you" sections
-        stream: false,
-      } as const;
       // anthropic.ts already has 30 s timeout + 1 retry — no extra race needed here
       const { text: reply, error, model, inputTokens, outputTokens } =
-        await anthropicMessages(conversationalRequest as any);
+        await anthropicMessages({
+          system: SONA_SYSTEM_PROMPT,
+          user: augmentedUser,
+          maxTokens: 1024,
+        });
       const responseMs = Date.now() - startedAt;
 
       const fallback = error

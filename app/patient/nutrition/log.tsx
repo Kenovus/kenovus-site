@@ -136,50 +136,56 @@ function ServingModal({
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={ms.backdrop}>
-          <TouchableWithoutFeedback onPress={e => e.stopPropagation()}>
-            <View style={ms.card}>
-              <Text style={ms.title} numberOfLines={2}>{item.name}</Text>
-              {item.brand && <Text style={ms.brand}>{item.brand}</Text>}
-              {/* Serving size reference */}
-              <Text style={ms.servRef}>
-                Per {item.serving_size}{item.serving_unit ? ` ${item.serving_unit}` : ''}
-              </Text>
-              {/* Macros preview */}
-              <View style={ms.macroRow}>
-                <View style={ms.calBox}>
-                  <Text style={ms.calNum}>{cal}</Text>
-                  <Text style={ms.calLbl}>cal</Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={20}>
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={ms.backdrop}>
+            <TouchableWithoutFeedback onPress={e => e.stopPropagation()}>
+              <ScrollView
+                style={ms.cardScroll}
+                contentContainerStyle={ms.card}
+                keyboardShouldPersistTaps="handled"
+                bounces={false}>
+                <Text style={ms.title} numberOfLines={2}>{item.name}</Text>
+                {item.brand && <Text style={ms.brand}>{item.brand}</Text>}
+                <Text style={ms.servRef}>
+                  Per {item.serving_size}{item.serving_unit ? ` ${item.serving_unit}` : ''}
+                </Text>
+                <View style={ms.macroRow}>
+                  <View style={ms.calBox}>
+                    <Text style={ms.calNum}>{cal}</Text>
+                    <Text style={ms.calLbl}>cal</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <MacroPill label="Protein" val={pro}  color={C.protein}/>
+                    <MacroPill label="Carbs"   val={carb} color={C.carbs}/>
+                    <MacroPill label="Fat"     val={fat}  color={C.fat}/>
+                  </View>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <MacroPill label="Protein" val={pro}  color={C.protein}/>
-                  <MacroPill label="Carbs"   val={carb} color={C.carbs}/>
-                  <MacroPill label="Fat"     val={fat}  color={C.fat}/>
+                <View style={ms.row}>
+                  <View style={ms.inputWrap}>
+                    <Text style={ms.label}>Quantity</Text>
+                    <TextInput style={ms.input} value={qty} onChangeText={setQty}
+                      keyboardType="decimal-pad" selectTextOnFocus/>
+                  </View>
+                  <View style={[ms.inputWrap, { flex: 2, marginLeft: 10 }]}>
+                    <Text style={ms.label}>Unit</Text>
+                    <TextInput style={ms.input} value={unit} onChangeText={setUnit} autoCapitalize="none"/>
+                  </View>
                 </View>
-              </View>
-              {/* Quantity + unit */}
-              <View style={ms.row}>
-                <View style={ms.inputWrap}>
-                  <Text style={ms.label}>Quantity</Text>
-                  <TextInput style={ms.input} value={qty} onChangeText={setQty}
-                    keyboardType="decimal-pad" selectTextOnFocus/>
-                </View>
-                <View style={[ms.inputWrap, { flex: 2, marginLeft: 10 }]}>
-                  <Text style={ms.label}>Unit</Text>
-                  <TextInput style={ms.input} value={unit} onChangeText={setUnit} autoCapitalize="none"/>
-                </View>
-              </View>
-              <Pressable style={ms.addBtn} onPress={() => { onAdd(item, q, unit); onClose(); }}>
-                <Text style={ms.addTxt}>Add to Log</Text>
-              </Pressable>
-              <Pressable onPress={onClose} style={ms.cancel}>
-                <Text style={ms.cancelTxt}>Cancel</Text>
-              </Pressable>
-            </View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
+                <Pressable style={ms.addBtn} onPress={() => { onAdd(item, q, unit); onClose(); }}>
+                  <Text style={ms.addTxt}>Add to Log</Text>
+                </Pressable>
+                <Pressable onPress={onClose} style={ms.cancel}>
+                  <Text style={ms.cancelTxt}>Cancel</Text>
+                </Pressable>
+              </ScrollView>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -275,7 +281,8 @@ function EditEntryModal({
 
 const ms = StyleSheet.create({
   backdrop:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  card:      { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  cardScroll: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%' },
+  card:      { padding: 24, paddingBottom: 40 },
   title:     { fontFamily: 'PTSerif_400Regular', fontSize: 22, color: C.darkText, marginBottom: 2 },
   brand:     { fontFamily: 'DMSans_400Regular', fontSize: 12, color: C.muted, marginBottom: 4 },
   servRef:   { fontFamily: 'DMSans_400Regular', fontSize: 11, color: C.muted, marginBottom: 14 },

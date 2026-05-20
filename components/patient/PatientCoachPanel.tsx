@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
 import { useFocusEffect } from 'expo-router';
+import { getExpoPublic } from '@/lib/expoPublicEnv';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -145,15 +146,14 @@ export function PatientCoachPanel({
   const playReplyAloud = useCallback(async (text: string) => {
     const responseText = text.trim();
     if (!responseText) return;
-    const elevenLabsApiKey = (process.env.EXPO_PUBLIC_ELEVENLABS_API_KEY ?? '').trim();
+    // Use getExpoPublic so the key is found even when Metro cache is stale
+    const elevenLabsApiKey = getExpoPublic('EXPO_PUBLIC_ELEVENLABS_API_KEY');
     if (!elevenLabsApiKey) {
       console.warn('[Sona] Missing EXPO_PUBLIC_ELEVENLABS_API_KEY; skipping voice playback.');
       return;
     }
-    console.log('ElevenLabs speaking:', responseText.slice(0, 50));
     setIsSpeakingAloud(true);
     try {
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
       const r = await speakCoachReply(responseText);
       if (!r.ok && r.reason === 'expo_go') Alert.alert('Voice output', 'Voice output available in full app.');
     } finally {

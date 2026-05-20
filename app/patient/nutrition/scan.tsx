@@ -290,14 +290,14 @@ export default function NutritionScan() {
                     style={styles.camera}
                   />
                   <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-                    <View style={{ borderWidth: 2, borderColor: tokens.colors.accent, width: 220, height: 100, borderRadius: 8, opacity: 0.7 }}/>
+                    <View style={{ borderWidth: 2, borderColor: #B8962E, width: 220, height: 100, borderRadius: 8, opacity: 0.7 }}/>
                   </View>
                 </View>
               ) : null}
               {lookingUp && (
                 <View style={{ alignItems: 'center', paddingVertical: 16, gap: 8 }}>
-                  <ActivityIndicator size="large" color={tokens.colors.accent}/>
-                  <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: 13, color: tokens.colors.textMuted }}>Looking up barcode…</Text>
+                  <ActivityIndicator size="large" color={#B8962E}/>
+                  <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: 13, color: #9CA3AF }}>Looking up barcode…</Text>
                 </View>
               )}
               {barcodeValue ? <Text style={styles.meta}>Last scanned: {barcodeValue}</Text> : null}
@@ -307,7 +307,7 @@ export default function NutritionScan() {
                 onChangeText={setServingGrams}
                 keyboardType="decimal-pad"
                 placeholder="100"
-                placeholderTextColor={tokens.colors.textCaption}
+                placeholderTextColor={#6B7280}
                 style={styles.input}
               />
               <Button
@@ -365,7 +365,7 @@ export default function NutritionScan() {
             value={foodName}
             onChangeText={setFoodName}
             placeholder="Food name"
-            placeholderTextColor={tokens.colors.textCaption}
+            placeholderTextColor={#6B7280}
             style={styles.input}
           />
 
@@ -400,90 +400,87 @@ function Field(props: { label: string; value: string; onChangeText: (t: string) 
         onChangeText={props.onChangeText}
         keyboardType="decimal-pad"
         placeholder="0"
-        placeholderTextColor={tokens.colors.textCaption}
+        placeholderTextColor={#6B7280}
         style={styles.input}
       />
     </View>
   );
 }
 
-const createStyles = (tokens: ReturnType<typeof useAppTheme>['tokens']) => {
-  const colors = {
-    dark: tokens.colors.background,
-    darkCard: tokens.colors.surface,
-    gold: tokens.colors.accent,
-    goldLight: tokens.colors.accent,
-    goldDim: tokens.colors.border,
-    white: tokens.colors.text,
-    gray1: tokens.colors.textMuted,
-    gray2: tokens.colors.textCaption,
-  };
-  const typography = {
-    h2: tokens.typography.h2,
-    body: tokens.typography.body,
-    label: tokens.typography.label,
+const createStyles = (_tokens: ReturnType<typeof useAppTheme>['tokens']) => {
+  // Scan screen is always dark regardless of app theme setting
+  const D = {
+    bg:       '#0F1923',
+    card:     '#1B2A3A',
+    gold:     '#B8962E',
+    goldDim:  'rgba(184,150,46,0.35)',
+    white:    '#FFFFFF',
+    cream:    '#E8D5B7',
+    muted:    '#9CA3AF',
   };
   return StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.dark },
-  title: { ...tokens.typography.section, color: colors.white, marginBottom: 12 },
-  body: { ...typography.body, color: colors.gray1, lineHeight: 24, marginBottom: 12 },
+  screen: { flex: 1, backgroundColor: D.bg },
+  title: { fontFamily: 'PTSerif_400Regular', fontSize: 28, color: D.cream, marginBottom: 12 },
+  body: { fontFamily: 'DMSans_400Regular', fontSize: 15, color: D.muted, lineHeight: 24, marginBottom: 12 },
   block: { marginBottom: 16 },
   switchRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   switchBtn: {
     flex: 1,
     borderWidth: 1,
-    borderColor: colors.goldDim,
+    borderColor: D.goldDim,
     borderRadius: 10,
     paddingVertical: 12,
-    alignItems: 'center',
+    alignItems: 'center' as const,
   },
-  switchOn: { backgroundColor: 'rgba(201,168,76,0.16)', borderColor: colors.gold },
-  switchText: { ...typography.body, color: colors.gray1 },
-  switchTextOn: { color: colors.white },
-  label: { ...typography.label, color: colors.goldLight, marginTop: 12, marginBottom: 8 },
+  switchOn: { backgroundColor: 'rgba(184,150,46,0.18)', borderColor: D.gold },
+  switchText: { fontFamily: 'DMSans_400Regular', fontSize: 14, color: D.muted },
+  switchTextOn: { color: D.white },
+  label: { fontFamily: 'DMSans_500Medium', fontSize: 11, color: D.gold, letterSpacing: 1.2, marginTop: 12, marginBottom: 8 },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   chip: {
     borderWidth: 1,
-    borderColor: colors.goldDim,
+    borderColor: D.goldDim,
     borderRadius: 999,
     paddingVertical: 8,
     paddingHorizontal: 12,
+    backgroundColor: D.card,
   },
-  chipOn: { borderColor: colors.gold, backgroundColor: 'rgba(201,168,76,0.2)' },
-  chipText: { ...typography.body, color: colors.gray1, fontSize: 15, textTransform: 'capitalize' },
-  chipTextOn: { color: colors.white },
+  chipOn: { borderColor: D.gold, backgroundColor: D.gold },
+  chipText: { fontFamily: 'DMSans_400Regular', fontSize: 14, color: D.muted, textTransform: 'capitalize' as const },
+  chipTextOn: { color: D.white },
   preview: {
     width: '100%',
     height: 180,
     borderRadius: 10,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: colors.goldDim,
+    borderColor: D.goldDim,
   },
   cameraWrap: {
     marginTop: 16,
     borderWidth: 1,
-    borderColor: colors.goldDim,
+    borderColor: D.goldDim,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: 'hidden' as const,
     height: 200,
   },
   camera: { flex: 1 },
   applyBtn: { marginTop: 12 },
   input: {
     borderWidth: 1,
-    borderColor: colors.goldDim,
+    borderColor: D.goldDim,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    color: colors.white,
-    ...typography.body,
-    backgroundColor: colors.darkCard,
+    backgroundColor: D.card,
+    color: D.white,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 15,
   },
-  smallLabel: { ...typography.label, color: colors.gray2, marginBottom: 8, fontSize: 15 },
+  smallLabel: { fontFamily: 'DMSans_400Regular', fontSize: 13, color: D.muted, marginBottom: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   field: { width: '47%' },
-  meta: { ...typography.body, color: colors.gray2, marginTop: 8, fontSize: 15 },
+  meta: { fontFamily: 'DMSans_400Regular', fontSize: 13, color: D.muted, marginTop: 8 },
   itemRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
 });
 };
