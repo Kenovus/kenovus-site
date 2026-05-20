@@ -12,6 +12,7 @@ import { fetchPatientMetabolicRow } from '@/lib/patientMetabolicProfile';
 import { fetchTrainingLogs } from '@/lib/trainingLogs';
 import { fetchLatestWeightLbs } from '@/lib/weightLogs';
 import { fetchPatientNutritionTargets } from '@/lib/patientNutritionTargets';
+import { fetchStreakInfo, fetchDailyWins } from '@/lib/dailyWins';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface PatientFullContext {
@@ -345,4 +346,252 @@ export async function buildPatientContextForUser(authUserId: string): Promise<Pa
   const patientId = await fetchPatientIdForAuthUser(authUserId);
   if (!patientId) return null;
   return buildPatientContext(patientId);
+}
+
+// ── Sona Context Block (prepended to every user message) ─────────────────────
+
+/**
+ * Builds a compact context block for every Sona message.
+ * Replaces the legacy multi-block approach with a single clean string.
+ */
+export async function buildSonaContext(userId: string): Promise<string> {
+  try {
+    const patientId = await fetchPatientIdForAuthUser(userId);
+    if (!patientId) return '';
+
+    const today = localDateKey(new Date());
+    const sevenDaysAgo = addDays(today, -7);
+
+    const [
+      patientResult,
+      foodTodayResult,
+      nutritionTargetsResult,
+      goalsResult,
+      latestWeightResult,
+      streakResult,
+      winsResult,
+      supplementsResult,
+      lastTreatmentResult,
+      lastTrainingResult,
+      weeklyWinsResult,
+      weeklyTrainingResult,
+    ] = await Promise.allSettled([
+      supabase
+        .from('patients')
+        .select('full_name, glp1_medication_name, glp1_dose, consumer_tier, profiles(full_name)')
+        .eq('id', patientId)
+        .maybeSingle(),
+      fetchFoodLogsForDate(patientId, today),
+      fetchPatientNutritionTargets(patientId),
+      fetchPatientGoals(patientId),
+      fetchLatestWeightLbs(patientId),
+      fetchStreakInfo(patientId),
+      fetchDailyWins(patientId, today),
+      supabase
+        .from('patient_supplements')
+        .select('supplement_name')
+        .eq('patient_id', patientId)
+        .eq('is_active', true)
+        .limit(10),
+      supabase
+        .from('patient_treatments')
+        .select('treatment_name, treatment_date')
+        .eq('patient_id', patientId)
+        .order('treatment_date', { ascending: false })
+        .limit(1),
+      supabase
+        .from('training_logs')
+        .select('muscle_focus, workout_date')
+        .eq('patient_id', patientId)
+        .order('workout_date', { ascending: false })
+        .limit(1),
+      supabase
+        .from('daily_wins')
+        .select('win_date, protein_hit')
+        .eq('patient_id', patientId)
+        .gte('win_date', sevenDaysAgo),
+      supabase
+        .from('training_logs')
+        .select('workout_date')
+        .eq('patient_id', patientId)
+        .gte('workout_date', sevenDaysAgo),
+    ]);
+
+    const patient = patientResult.status === 'fulfilled' ? patientResult.value.data : null;
+    const profileName =
+      (patient?.profiles as { full_name?: string } | null)?.full_name ??
+      (patient?.full_name as string | undefined) ?? '';
+    const firstName = profileName.split(' ')[0] || '';
+
+    const food = foodTodayResult.status === 'fulfilled' ? foodTodayResult.value : [];
+    const targets = nutritionTargetsResult.status === 'fulfilled' ? nutritionTargetsResult.value : null;
+    const goals = goalsResult.status === 'fulfilled' ? goalsResult.value : null;
+    const weightLbs = latestWeightResult.status === 'fulfilled' ? latestWeightResult.value : null;
+    const streak = streakResult.status === 'fulfilled'
+      ? streakResult.value
+      : { current_streak: 0, longest_streak: 0, last_win_date: null };
+    const wins = winsResult.status === 'fulfilled'
+      ? winsResult.value
+      : { protein_hit: false, training_done: false, steps_hit: false, all_three: false };
+    const supps =
+      supplementsResult.status === 'fulfilled' ? (supplementsResult.value.data ?? []) : [];
+    const lastTreat =
+      lastTreatmentResult.status === 'fulfilled'
+        ? (lastTreatmentResult.value.data?.[0] ?? null)
+        : null;
+    const lastTraining =
+      lastTrainingResult.status === 'fulfilled'
+        ? (lastTrainingResult.value.data?.[0] ?? null)
+        : null;
+    const weeklyWinsData =
+      weeklyWinsResult.status === 'fulfilled' ? (weeklyWinsResult.value.data ?? []) : [];
+    const weeklyTrainingData =
+      weeklyTrainingResult.status === 'fulfilled'
+        ? (weeklyTrainingResult.value.data ?? [])
+        : [];
+
+    // Nutrition totals
+    let calToday = 0, proToday = 0, carbToday = 0, fatToday = 0;
+    for (const e of food) {
+      calToday += e.calories ?? 0;
+      proToday += e.protein_g ?? 0;
+      carbToday += e.carbs_g ?? 0;
+      fatToday += e.fat_g ?? 0;
+    }
+    calToday = Math.round(calToday);
+    proToday = Math.round(proToday);
+    carbToday = Math.round(carbToday);
+    fatToday = Math.round(fatToday);
+
+    const calTarget = targets?.calories_override ?? 2000;
+    const proTarget = targets?.protein_override_g ?? 150;
+    const carbTarget = targets?.carbs_override_g ?? 200;
+    const fatTarget = targets?.fat_override_g ?? 70;
+    const calPct = calTarget > 0 ? Math.round((calToday / calTarget) * 100) : 0;
+    const proRemaining = Math.max(0, proTarget - proToday);
+
+    const proteinHitDays = weeklyWinsData.filter(
+      (w: Record<string, unknown>) => w.protein_hit,
+    ).length;
+    const workoutsThisWeek = weeklyTrainingData.length;
+
+    const glp1 = patient?.glp1_medication_name as string | null;
+    const glp1Dose = patient?.glp1_dose as string | null;
+    const glp1Line = glp1 ? `${glp1}${glp1Dose ? ` ${glp1Dose}` : ''}` : 'Not on GLP-1';
+
+    const lines: string[] = ['=== USER CONTEXT ==='];
+    if (firstName) lines.push(`Name: ${firstName}`);
+    if (goals?.primary_goal) lines.push(`Goal: ${goals.primary_goal.replace(/_/g, ' ')}`);
+    if (weightLbs) lines.push(`Current Weight: ${Math.round(weightLbs)} lbs`);
+    if (goals?.target_weight != null) lines.push(`Target Weight: ${goals.target_weight} lbs`);
+
+    lines.push('', 'Daily Targets:');
+    lines.push(`Calories: ${calTarget} kcal`);
+    lines.push(`Protein: ${proTarget}g`);
+    lines.push(`Carbs: ${carbTarget}g`);
+    lines.push(`Fat: ${fatTarget}g`);
+
+    lines.push('', 'Today So Far:');
+    lines.push(`Calories logged: ${calToday} kcal (${calPct}% of target)`);
+    lines.push(`Protein: ${proToday}g (${proRemaining}g remaining)`);
+    lines.push(`Carbs: ${carbToday}g`);
+    lines.push(`Fat: ${fatToday}g`);
+
+    lines.push('', 'Training:');
+    if (lastTraining?.muscle_focus) {
+      lines.push(`Last split: ${String(lastTraining.muscle_focus).replace(/_/g, ' ')}`);
+    }
+    lines.push(`Workout status today: ${wins.training_done ? 'completed' : 'not completed'}`);
+    lines.push(`Current streak: ${streak.current_streak} days`);
+
+    lines.push('', `GLP-1: ${glp1Line}`);
+
+    if (supps.length > 0) {
+      const suppList = supps
+        .map((s: Record<string, unknown>) => String(s.supplement_name ?? ''))
+        .filter(Boolean)
+        .join(', ');
+      lines.push('', `Active Supplements: ${suppList}`);
+    }
+
+    if (lastTreat) {
+      const t = lastTreat as Record<string, unknown>;
+      lines.push('', `Last Treatment: ${t.treatment_name} on ${t.treatment_date}`);
+    }
+
+    lines.push('', 'Recent Pattern:');
+    lines.push(`Protein hit ${proteinHitDays}/7 days this week`);
+    lines.push(`Workouts completed ${workoutsThisWeek}/7 this week`);
+
+    lines.push('=== END CONTEXT ===');
+    return lines.join('\n');
+  } catch (e) {
+    console.warn('[buildSonaContext] Failed:', e);
+    return '';
+  }
+}
+
+// ── Morning Brief ─────────────────────────────────────────────────────────────
+
+/**
+ * Builds the proactive morning greeting from live patient context.
+ * Called when the user opens Sona between 5–11am for the first time today.
+ */
+export async function buildMorningBrief(userId: string): Promise<string> {
+  try {
+    const patientId = await fetchPatientIdForAuthUser(userId);
+    if (!patientId) return '';
+
+    const today = localDateKey(new Date());
+
+    const [patientResult, streakResult, winsResult, foodResult, targetsResult] =
+      await Promise.allSettled([
+        supabase
+          .from('patients')
+          .select('full_name, profiles(full_name)')
+          .eq('id', patientId)
+          .maybeSingle(),
+        fetchStreakInfo(patientId),
+        fetchDailyWins(patientId, today),
+        fetchFoodLogsForDate(patientId, today),
+        fetchPatientNutritionTargets(patientId),
+      ]);
+
+    const patient = patientResult.status === 'fulfilled' ? patientResult.value.data : null;
+    const profileName =
+      (patient?.profiles as { full_name?: string } | null)?.full_name ??
+      (patient?.full_name as string | undefined) ?? '';
+    const firstName = profileName.split(' ')[0] || 'there';
+
+    const streak =
+      streakResult.status === 'fulfilled'
+        ? streakResult.value
+        : { current_streak: 0, longest_streak: 0, last_win_date: null };
+    const wins =
+      winsResult.status === 'fulfilled'
+        ? winsResult.value
+        : { protein_hit: false, training_done: false, steps_hit: false, all_three: false };
+
+    const food = foodResult.status === 'fulfilled' ? foodResult.value : [];
+    const targets = targetsResult.status === 'fulfilled' ? targetsResult.value : null;
+    const proTarget = targets?.protein_override_g ?? 150;
+    const proToday = food.reduce((s, e) => s + (e.protein_g ?? 0), 0);
+    const proPercent = proTarget > 0 ? (proToday / proTarget) * 100 : 100;
+
+    let dynamicLine: string;
+    if (streak.current_streak > 0) {
+      dynamicLine = `You're on a ${streak.current_streak}-day streak — don't break it today.`;
+    } else if (!wins.training_done) {
+      dynamicLine = "Let's get your training done today.";
+    } else if (proPercent < 50) {
+      dynamicLine = 'Protein is your priority this morning.';
+    } else {
+      dynamicLine = "Let's make today count.";
+    }
+
+    return `Good morning ${firstName}. ${dynamicLine} What's your focus today?`;
+  } catch (e) {
+    console.warn('[buildMorningBrief] Failed:', e);
+    return '';
+  }
 }
