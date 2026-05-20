@@ -290,14 +290,14 @@ export default function NutritionScan() {
                     style={styles.camera}
                   />
                   <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-                    <View style={{ borderWidth: 2, borderColor: #B8962E, width: 220, height: 100, borderRadius: 8, opacity: 0.7 }}/>
+                    <View style={{ borderWidth: 2, borderColor: '#B8962E', width: 220, height: 100, borderRadius: 8, opacity: 0.7 }}/>
                   </View>
                 </View>
               ) : null}
               {lookingUp && (
                 <View style={{ alignItems: 'center', paddingVertical: 16, gap: 8 }}>
-                  <ActivityIndicator size="large" color={#B8962E}/>
-                  <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: 13, color: #9CA3AF }}>Looking up barcode…</Text>
+                  <ActivityIndicator size="large" color={'#B8962E'}/>
+                  <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: 13, color: '#9CA3AF' }}>Looking up barcode…</Text>
                 </View>
               )}
               {barcodeValue ? <Text style={styles.meta}>Last scanned: {barcodeValue}</Text> : null}
@@ -307,7 +307,7 @@ export default function NutritionScan() {
                 onChangeText={setServingGrams}
                 keyboardType="decimal-pad"
                 placeholder="100"
-                placeholderTextColor={#6B7280}
+                placeholderTextColor={'#6B7280'}
                 style={styles.input}
               />
               <Button
@@ -365,7 +365,7 @@ export default function NutritionScan() {
             value={foodName}
             onChangeText={setFoodName}
             placeholder="Food name"
-            placeholderTextColor={#6B7280}
+            placeholderTextColor={'#6B7280'}
             style={styles.input}
           />
 
@@ -400,7 +400,7 @@ function Field(props: { label: string; value: string; onChangeText: (t: string) 
         onChangeText={props.onChangeText}
         keyboardType="decimal-pad"
         placeholder="0"
-        placeholderTextColor={#6B7280}
+        placeholderTextColor={'#6B7280'}
         style={styles.input}
       />
     </View>
