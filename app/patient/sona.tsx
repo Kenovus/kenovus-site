@@ -11,6 +11,7 @@ import { LotusOrb } from '@/components/ui/LotusOrb';
 import { SonaAmbientGlow } from '@/components/ui/SonaAmbientGlow';
 import { useSonaVoice } from '@/contexts/SonaVoiceContext';
 import { useAuth } from '@/hooks/useAuth';
+import { getExpoPublic } from '@/lib/expoPublicEnv';
 import { useAppTheme } from '@/lib/theme/ThemeProvider';
 
 const GOLD = '#BF8D36';
@@ -134,6 +135,9 @@ export default function SonaTabScreen() {
         </View>
       </TouchableWithoutFeedback>
 
+      {/* ── ElevenLabs debug panel — visible in production builds only, remove once voice confirmed ── */}
+      {!__DEV__ && <ElevenLabsDebugPanel />}
+
       {/* ── Chat + input, fills remaining space ────────────────────── */}
       <KeyboardAvoidingView
         style={ss.chatArea}
@@ -188,3 +192,47 @@ const cs = StyleSheet.create({
   },
   chipTxt: { fontFamily: 'DMSans_400Regular', fontSize: 12 },
 });
+
+// ── ElevenLabs debug panel (production only, remove after voice confirmed) ────
+// Expose this setter so elevenlabsTts.ts can call it after each attempt
+export let _setTtsDebugStatus: ((s: 'success' | 'failed' | 'not attempted') => void) | null = null;
+
+function ElevenLabsDebugPanel() {
+  const [lastTts, setLastTts] = useState<'success' | 'failed' | 'not attempted'>('not attempted');
+
+  useEffect(() => {
+    _setTtsDebugStatus = setLastTts;
+    return () => { _setTtsDebugStatus = null; };
+  }, []);
+
+  const apiKey = getExpoPublic('EXPO_PUBLIC_ELEVENLABS_API_KEY');
+  const voiceId =
+    getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID_FEMALE') ||
+    getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID_MALE') ||
+    getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID') ||
+    '';
+
+  const keyLabel  = apiKey  ? apiKey.substring(0, 8)   : 'MISSING';
+  const voiceLabel = voiceId ? voiceId.substring(0, 8) : 'MISSING';
+  const ttsColor = lastTts === 'success' ? '#5EC47A' : lastTts === 'failed' ? '#E07878' : '#9a826a';
+
+  return (
+    <View style={{
+      marginHorizontal: 12, marginBottom: 4,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      borderRadius: 8, borderWidth: 1, borderColor: 'rgba(191,141,54,0.3)',
+      paddingHorizontal: 10, paddingVertical: 6,
+      flexDirection: 'row', flexWrap: 'wrap', gap: 12,
+    }}>
+      <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: 10, color: '#c8b89a' }}>
+        EL Key: <Text style={{ color: apiKey ? '#5EC47A' : '#E07878' }}>{keyLabel}</Text>
+      </Text>
+      <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: 10, color: '#c8b89a' }}>
+        Voice: <Text style={{ color: voiceId ? '#5EC47A' : '#E07878' }}>{voiceLabel}</Text>
+      </Text>
+      <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: 10, color: '#c8b89a' }}>
+        Last TTS: <Text style={{ color: ttsColor }}>{lastTts}</Text>
+      </Text>
+    </View>
+  );
+}

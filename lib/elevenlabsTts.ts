@@ -8,6 +8,15 @@ import * as Speech from 'expo-speech';
 
 import { getExpoPublic } from '@/lib/expoPublicEnv';
 
+// Debug status reporter — set by sona.tsx debug panel, no-op otherwise
+function reportTts(status: 'success' | 'failed' | 'not attempted') {
+  try {
+    // Lazy import to avoid circular dependency
+    const mod = require('@/app/patient/sona') as { _setTtsDebugStatus?: ((s: typeof status) => void) | null };
+    mod._setTtsDebugStatus?.(status);
+  } catch { /* panel not mounted */ }
+}
+
 const FORCE_TEST_MODE = true; // remove after confirming it works
 
 let _activeSound: Audio.Sound | null = null;
@@ -118,6 +127,7 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
     if (!response.ok) {
       const err = await response.text();
       console.error('ElevenLabs error:', err);
+      reportTts('failed');
       await speakWithExpoSpeech(textToSpeak);
       return { ok: true, reason: 'expo_speech_fallback' };
     }
@@ -157,6 +167,7 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
     );
     _activeSound = sound;
 
+    reportTts('success');
     return new Promise((resolve) => {
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
@@ -175,6 +186,7 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
     });
   } catch (e) {
     console.warn('[TTS] error:', e);
+    reportTts('failed');
     await speakWithExpoSpeech(textToSpeak);
     return { ok: true, reason: 'expo_speech_fallback' };
   }
