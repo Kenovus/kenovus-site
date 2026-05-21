@@ -8,7 +8,7 @@ import { EMERGENCY_KEYWORDS } from '@/constants/emergency';
 import { countUserCoachMessagesToday } from '@/lib/aiUsage';
 import { getDailyAiUserMessageCap } from '@/lib/consumerTier';
 import { fetchPatientIdForAuthUser } from '@/lib/onboarding/patient';
-import { anthropicMessages } from '@/lib/anthropic';
+import { anthropicMessages, anthropicMessagesStream } from '@/lib/anthropic';
 import {
   fetchPatientClinicalContext,
   runPatientCoachClinicalQuery,
@@ -156,6 +156,8 @@ CLINICAL GUARDRAILS — NON NEGOTIABLE
 ====================
 RESPONSE STYLE
 ====================
+
+CRITICAL: Keep all responses under 150 words. Be direct and punchy. No essays.
 
 - Clear and concise — never long essays
 - Structured when helpful, conversational when not
@@ -342,7 +344,7 @@ export function useAI() {
             {
               id: mid(),
               role: 'assistant',
-              text: 'Haven’t logged a workout yet today. Tell me what you did and I can log it for you.',
+              text: "Haven't logged a workout yet today. Tell me what you did and I can log it for you.",
             },
           ];
         });
@@ -534,11 +536,12 @@ export function useAI() {
           parsed: parsedWorkout.sets,
           notes: parsedWorkout.notes,
         });
+        const confirm = formatWorkoutConfirmation(parsedWorkout.sets);
         const workoutReply = saveRes.error
-          ? `I parsed your workout but couldn't save it just now: ${saveRes.error}. Please retry.`
+          ? `I parsed your workout but couldn't save it: ${saveRes.error}. Retry?`
           : incomplete
-            ? `Got it — ${formatWorkoutConfirmation(parsedWorkout.sets)}. I saved this session. How many reps did you do on ${incomplete.exercise}?`
-            : `Got it — ${formatWorkoutConfirmation(parsedWorkout.sets)}. Saved to your Training log.`;
+            ? `Logged: ${confirm}. How many reps on ${incomplete.exercise}?`
+            : `Logged: ${confirm}. Saved. Stack another day.`;
         setMessages((m) => [...m, { id: mid(), role: 'assistant', text: workoutReply }]);
         if (cid) {
           await supabase.from('ai_messages').insert({
@@ -814,34 +817,39 @@ export function useAI() {
         : `${context}\nuser: ${text}`;
 
       const startedAt = Date.now();
-      // anthropic.ts already has 30 s timeout + 1 retry — no extra race needed here
-      const { text: reply, error, model, inputTokens, outputTokens } =
-        await anthropicMessages({
-          system: SONA_SYSTEM_PROMPT,
-          user: augmentedUser,
-          maxTokens: 1024,
-        });
-      const responseMs = Date.now() - startedAt;
-
-      const fallback = error
-        ? `I can help with wellness planning, but I cannot reach the AI service right now. Try again in a moment.`
-        : `I hear you. Let’s choose one high-impact step right now: hydrate, get protein in your next meal, and do a short walk.`;
-
-      const finalReply = reply ?? fallback;
-      if (error) {
-        console.warn('[Sona] Anthropic request failed:', error.message);
-      }
-
-      // Two-step reveal: show first half briefly, then full reply
+      // Stream response — first token arrives in ~1s, user sees words immediately
       const assistantId = mid();
       setMessages((m) => [...m, { id: assistantId, role: 'assistant', text: '' }]);
-      const _words = finalReply.split(' ');
-      if (_words.length > 10) {
-        const half = _words.slice(0, Math.ceil(_words.length / 2)).join(' ');
-        setMessages((m) => m.map((msg) => msg.id === assistantId ? { ...msg, text: half } : msg));
-        await new Promise((r) => setTimeout(r, 220));
+
+      let finalReply = '';
+      let firstChunk = true;
+      try {
+        for await (const chunk of anthropicMessagesStream({
+          system: SONA_SYSTEM_PROMPT,
+          user: augmentedUser,
+          maxTokens: 200,
+        })) {
+          if (firstChunk) {
+            firstChunk = false;
+            setLoading(false); // first word arrived — hide "thinking" spinner immediately
+          }
+          finalReply += chunk;
+          setMessages((m) => m.map((msg) =>
+            msg.id === assistantId ? { ...msg, text: finalReply } : msg,
+          ));
+        }
+      } catch (streamErr) {
+        console.warn('[Sona] Streaming error:', streamErr);
       }
-      setMessages((m) => m.map((msg) => msg.id === assistantId ? { ...msg, text: finalReply } : msg));
+
+      if (!finalReply) {
+        finalReply = 'I can help with wellness planning, but I cannot reach the AI service right now. Try again in a moment.';
+        setMessages((m) => m.map((msg) =>
+          msg.id === assistantId ? { ...msg, text: finalReply } : msg,
+        ));
+      }
+
+      const responseMs = Date.now() - startedAt;
 
       if (cid) {
         await supabase.from('ai_messages').insert({
@@ -860,12 +868,12 @@ export function useAI() {
         sessionId: cid,
         role: 'assistant',
         content: finalReply,
-        modelUsed: model,
-        tokensInput: inputTokens,
-        tokensOutput: outputTokens,
+        modelUsed: null,
+        tokensInput: null,
+        tokensOutput: null,
         responseTimeMs: responseMs,
-        flaggedForReview: Boolean(error),
-        flagReason: error ? error.message : null,
+        flaggedForReview: false,
+        flagReason: null,
       });
       await maybeFlagGlp1DoseReviewForSimi({
         patientId,

@@ -57,6 +57,104 @@ async function callMessages(key: string, body: object, attempt: number): Promise
   }
 }
 
+// ── SSE helpers ──────────────────────────────────────────────────────────────
+
+function parseSSELine(line: string): string | null {
+  if (!line.startsWith('data: ')) return null;
+  const data = line.slice(6).trim();
+  if (data === '[DONE]') return null;
+  try {
+    const json = JSON.parse(data) as { type: string; delta?: { type: string; text?: string } };
+    if (json.type === 'content_block_delta' && json.delta?.type === 'text_delta') {
+      return json.delta.text ?? null;
+    }
+  } catch { /* skip malformed JSON */ }
+  return null;
+}
+
+/**
+ * Streaming variant — yields text tokens as they arrive via SSE.
+ * Falls back to buffering the full SSE text and parsing it if the runtime
+ * doesn't support ReadableStream readers (older React Native).
+ */
+export async function* anthropicMessagesStream(params: {
+  system: string;
+  user: string;
+  maxTokens?: number;
+}): AsyncGenerator<string> {
+  const key = getAnthropicKey();
+  if (!key) return;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 25_000);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: params.maxTokens ?? 200,
+        system: params.system,
+        messages: [{ role: 'user', content: [{ type: 'text', text: params.user }] }],
+        stream: true,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('[Anthropic stream] HTTP', res.status, errText.slice(0, 200));
+      return;
+    }
+
+    // Try true streaming (works on RN new architecture)
+    const reader = res.body?.getReader();
+    if (reader) {
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          const token = parseSSELine(line);
+          if (token) yield token;
+        }
+      }
+      for (const line of buffer.split('\n')) {
+        const token = parseSSELine(line);
+        if (token) yield token;
+      }
+    } else {
+      // Fallback: full buffer — parse SSE text then yield word-by-word for visual effect
+      const fullText = await res.text();
+      let combined = '';
+      for (const line of fullText.split('\n')) {
+        const token = parseSSELine(line);
+        if (token) combined += token;
+      }
+      const words = combined.split(' ');
+      for (let i = 0; i < words.length; i++) {
+        yield (i === 0 ? '' : ' ') + words[i];
+        if (i < words.length - 1) {
+          await new Promise((r) => setTimeout(r, 18)); // ~55 words/sec visual speed
+        }
+      }
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ── Non-streaming (kept for one-off calls) ────────────────────────────────────
+
 export async function anthropicMessages(params: {
   system: string;
   user: string;

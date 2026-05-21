@@ -324,6 +324,7 @@ export default function NutritionLog() {
   const [search, setSearch]           = useState('');
   const [searchResults, setResults]   = useState<FoodSearchItem[]>([]);
   const [searching, setSearching]     = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   const [activeMeal, setActiveMeal]   = useState<MealType | null>(null);
   // 'action' = showing Search/Scan options; 'search' = typing search; null = closed
   const [mealMode, setMealMode]       = useState<'action' | 'search' | null>(null);
@@ -367,10 +368,10 @@ export default function NutritionLog() {
     }
   }, [mealParam]);
 
-  // Search with 300ms debounce
+  // Search with 300ms debounce — only fires when query is 2+ chars
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!search.trim()) { setResults([]); setSearching(false); return; }
+    if (search.trim().length < 2) { setResults([]); setSearching(false); return; }
     setSearching(true);
     debounceRef.current = setTimeout(async () => {
       try {
@@ -505,7 +506,7 @@ export default function NutritionLog() {
   })), [recentFoods]);
 
   const showSearchUI = mealMode === 'search';
-  const hasSearch    = search.length > 0;
+  const hasSearch    = search.length >= 2; // only treat as active search when 2+ chars typed
 
   if (loading) {
     return (
@@ -554,6 +555,8 @@ export default function NutritionLog() {
             style={s.searchInput}
             value={search}
             onChangeText={setSearch}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
             placeholder={`Search foods for ${MEALS.find(m => m.value === activeMeal)?.label}…`}
             placeholderTextColor={C.muted}
             returnKeyType="search"
@@ -587,13 +590,13 @@ export default function NutritionLog() {
                   <Text style={s.resultsHeader}>
                     {hasSearch
                       ? (searching ? 'Searching…' : `${searchResults.length} result${searchResults.length !== 1 ? 's' : ''}`)
-                      : 'Recent foods'}
+                      : (searchFocused ? 'Recent foods' : '')}
                   </Text>
                   {searching && <ActivityIndicator size="small" color={C.gold}/>}
                 </View>
 
-                {/* Recent foods (shown before search results when not searching) */}
-                {!hasSearch && recentAsSearch.map((r, i) => (
+                {/* Recent foods — only shown when search bar is focused but no search query yet */}
+                {!hasSearch && searchFocused && recentAsSearch.map((r, i) => (
                   <ResultRow key={`recent-${i}`} item={r} onSelect={() => setSelected(r)} isRecent/>
                 ))}
 

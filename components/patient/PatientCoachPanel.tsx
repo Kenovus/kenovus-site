@@ -112,6 +112,12 @@ export function PatientCoachPanel({
 
   useFocusEffect(
     useCallback(() => {
+      // Initialise audio session so mic works every time we enter this screen
+      void Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
       void (async () => {
         const v = await AsyncStorage.getItem('sona.voice.autoSpeak');
         setAutoReadAloud(v == null ? true : v === '1');
@@ -124,13 +130,15 @@ export function PatientCoachPanel({
           await AsyncStorage.setItem(key, '1');
         }
       })();
+
       return () => {
+        // Release audio session and stop any active recognition when leaving
+        void Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: false,
+        });
         if (ExpoSpeechRecognitionModule) {
-          try {
-            ExpoSpeechRecognitionModule.stop();
-          } catch {
-            // ignore
-          }
+          try { ExpoSpeechRecognitionModule.stop(); } catch { /* ignore */ }
         }
         if (sonaTab) {
           setVoiceModalOpen(false);

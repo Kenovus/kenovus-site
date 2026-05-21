@@ -19,8 +19,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { useAuth } from '@/hooks/useAuth';
+import { fetchDailyWins, upsertDailyWins } from '@/lib/dailyWins';
 import { fetchPatientIdForAuthUser } from '@/lib/onboarding/patient';
-import { fetchTrainingLogs, totalWorkingSetsForLog, type TrainingLogRow } from '@/lib/trainingLogs';
+import { insertTrainingLog, fetchTrainingLogs, totalWorkingSetsForLog, type TrainingLogRow } from '@/lib/trainingLogs';
 import { useAppTheme } from '@/lib/theme/ThemeProvider';
 
 const GOLD  = '#BF8D36';
@@ -162,6 +163,44 @@ export default function TrainScreen() {
 
   const todaySplit = getSplitForDay(todayCycleDay);
   const workoutForSelectedDate = history.find((l) => l.workout_date === selectedDate);
+  const todayLogged = history.some((l) => l.workout_date === today);
+
+  const quickLogWorkout = async (splitLabel: string) => {
+    Alert.alert(
+      'Log Workout',
+      `Log ${splitLabel} for today?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log It ✓',
+          onPress: async () => {
+            if (!user?.id) return;
+            const pid = await fetchPatientIdForAuthUser(user.id);
+            if (!pid) return;
+            const muscleFocus = splitLabel.toLowerCase().replace(/\s*[&+]\s*/g, '_').replace(/\s+/g, '_');
+            await insertTrainingLog({
+              patientId: pid,
+              workout_date: today,
+              muscle_focus: muscleFocus,
+              exercises: [],
+              duration_minutes: null,
+              notes: `${splitLabel} — quick logged from split`,
+              weight_unit: 'lb',
+            });
+            try {
+              const wins = await fetchDailyWins(pid, today);
+              await upsertDailyWins(pid, today, {
+                protein_hit: wins.protein_hit,
+                training_done: true,
+                steps_hit: wins.steps_hit,
+              });
+            } catch { /* non-critical */ }
+            await load();
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: BG }}>
@@ -290,9 +329,17 @@ export default function TrainScreen() {
               <Text style={{ fontSize: 18 }}>{s.emoji}</Text>
               <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 14, color: TX, flex: 1 }}>{s.label}</Text>
               {s.day === todayCycleDay && (
-                <View style={{ backgroundColor: GOLD + '22', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: GOLD + '50' }}>
-                  <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 10, color: GOLD }}>TODAY</Text>
-                </View>
+                todayLogged ? (
+                  <View style={{ backgroundColor: GREEN + '22', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: GREEN + '50' }}>
+                    <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 11, color: GREEN }}>✅ Done</Text>
+                  </View>
+                ) : (
+                  <Pressable
+                    onPress={(e) => { e.stopPropagation(); void quickLogWorkout(s.label); }}
+                    style={{ backgroundColor: GOLD, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
+                    <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 11, color: '#fff' }}>Log ✓</Text>
+                  </Pressable>
+                )
               )}
             </Pressable>
           ))}
