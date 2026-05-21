@@ -54,6 +54,7 @@ import {
 } from '@/lib/patientGoals';
 import { parseConversationalFoodText, type ConversationalFoodItem } from '@/lib/nutritionFoodApi';
 import { localDateKey } from '@/lib/patientSupplements';
+import { formatDisplayDate } from '@/lib/dateUsFormat';
 import { supabase } from '@/lib/supabase';
 import { useAppTheme } from '@/lib/theme/ThemeProvider';
 import { standardTextInputProps } from '@/lib/textInputStandard';
@@ -233,18 +234,44 @@ export default function NutritionIndex() {
   const refresh = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+
+    // Helper: wrap any promise with a 5s timeout that resolves to the fallback value
+    function withTimeout<T>(p: Promise<T>, fallback: T): Promise<T> {
+      return Promise.race([p, new Promise<T>((res) => setTimeout(() => res(fallback), 5000))]);
+    }
+
     try {
-      const pid = await fetchPatientIdForAuthUser(user.id);
+      const pid = await withTimeout(fetchPatientIdForAuthUser(user.id), null);
       setPatientId(pid);
-      if (!pid) return;
+      if (!pid) { setLoading(false); return; }
       const today = localDateKey(new Date());
-      const [goalsRow, weights, metabolic, { data: goalRow }, nutritionOverrides, todaysEntries] = await Promise.all([
-        fetchPatientGoals(pid),
-        fetchPatientWeightsForMacros(pid),
-        fetchPatientMetabolicRow(pid),
-        supabase.from('patient_macro_goals').select('*').eq('patient_id', pid).maybeSingle(),
-        fetchPatientNutritionTargets(pid),
-        fetchFoodLogsForDate(pid, today),
+
+      // PRIORITY 1: today's food logs + macro targets — render immediately
+      const [todaysEntries, nutritionOverrides] = await Promise.all([
+        withTimeout(fetchFoodLogsForDate(pid, today), []),
+        withTimeout(fetchPatientNutritionTargets(pid), null),
+      ]);
+
+      // Show today's totals right away so the screen is useful before secondary data loads
+      const quickSum = (todaysEntries as typeof todaysEntries).reduce(
+        (acc, e) => ({
+          calories: acc.calories + (e.calories ?? 0),
+          protein: acc.protein + (e.protein_g ?? 0),
+          carbs: acc.carbs + (e.carbs_g ?? 0),
+          fat: acc.fat + (e.fat_g ?? 0),
+        }),
+        { calories: 0, protein: 0, carbs: 0, fat: 0 },
+      );
+      setTodaysFood(todaysEntries as typeof todaysEntries);
+      setTotals({ calories: Math.round(quickSum.calories), protein: Math.round(quickSum.protein), carbs: Math.round(quickSum.carbs), fat: Math.round(quickSum.fat) });
+      setLoading(false); // show UI immediately with what we have
+
+      // PRIORITY 2: goals, weights, metabolic — load in background
+      const [goalsRow, weights, metabolic, { data: goalRow }] = await Promise.all([
+        withTimeout(fetchPatientGoals(pid), null),
+        withTimeout(fetchPatientWeightsForMacros(pid), { patientGoalWeightLbs: null, latestLoggedWeightLbs: null }),
+        withTimeout(fetchPatientMetabolicRow(pid), null),
+        withTimeout(supabase.from('patient_macro_goals').select('*').eq('patient_id', pid).maybeSingle(), { data: null, error: null }),
       ]);
 
       setMetabolicRow(metabolic);
@@ -310,26 +337,17 @@ export default function NutritionIndex() {
 
       await syncPatientMacroGoalsFromEffective(pid, effective);
 
-      setTodaysFood(todaysEntries);
+      // setTodaysFood + setTotals already called above for instant render
 
-      // Load planned meals and templates in parallel
+      // PRIORITY 3: planned meals + templates — least urgent
       const [plans, tmpl] = await Promise.all([
-        fetchPlansForDate(pid, today),
-        fetchTemplates(pid),
+        withTimeout(fetchPlansForDate(pid, today), []),
+        withTimeout(fetchTemplates(pid), []),
       ]);
-      setPlannedMeals(plans);
-      setTemplates(tmpl);
-
-      const sum = todaysEntries.reduce(
-        (acc, e) => ({
-          calories: acc.calories + e.calories,
-          protein: acc.protein + e.protein_g,
-          carbs: acc.carbs + e.carbs_g,
-          fat: acc.fat + e.fat_g,
-        }),
-        { calories: 0, protein: 0, carbs: 0, fat: 0 },
-      );
-      setTotals(sum);
+      setPlannedMeals(plans as typeof plans);
+      setTemplates(tmpl as typeof tmpl);
+    } catch (e) {
+      console.warn('[Nutrition] refresh error:', e);
     } finally {
       setLoading(false);
     }
@@ -561,7 +579,7 @@ export default function NutritionIndex() {
           ))}
         </View>
       </View>
-      <Text style={styles.dateSubtitle}>{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</Text>
+      <Text style={styles.dateSubtitle}>{formatDisplayDate(new Date())}</Text>
       {loading ? <Text style={styles.loadingText}>Loading…</Text> : null}
     </View>
 

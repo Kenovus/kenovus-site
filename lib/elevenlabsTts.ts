@@ -1,23 +1,11 @@
 /**
  * TTS: ElevenLabs primary → expo-speech fallback.
- * FORCE_TEST_MODE logs all credential values for debugging — set false once confirmed working.
  */
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import * as Speech from 'expo-speech';
 
 import { getExpoPublic } from '@/lib/expoPublicEnv';
-
-// Debug status reporter — set by sona.tsx debug panel, no-op otherwise
-function reportTts(status: 'success' | 'failed' | 'not attempted') {
-  try {
-    // Lazy import to avoid circular dependency
-    const mod = require('@/app/patient/sona') as { _setTtsDebugStatus?: ((s: typeof status) => void) | null };
-    mod._setTtsDebugStatus?.(status);
-  } catch { /* panel not mounted */ }
-}
-
-const FORCE_TEST_MODE = true; // remove after confirming it works
 
 let _activeSound: Audio.Sound | null = null;
 
@@ -28,7 +16,6 @@ export async function stopSpeaking(): Promise<void> {
     _activeSound = null;
   }
   try { Speech.stop(); } catch { /* not speaking */ }
-  console.log('[TTS] stopped');
 }
 
 function stripForSpeech(text: string): string {
@@ -43,7 +30,6 @@ function stripForSpeech(text: string): string {
 }
 
 async function speakWithExpoSpeech(text: string): Promise<void> {
-  console.log('[TTS] falling back to expo-speech');
   const available = await Speech.getAvailableVoicesAsync().catch(() => []);
   const preferred = available.find(
     (v) => v.language?.startsWith('en') && (
@@ -70,7 +56,6 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
   const textToSpeak = stripForSpeech(text);
   if (!textToSpeak) return { ok: false, reason: 'empty' };
 
-  // Resolve credentials
   const apiKey = getExpoPublic('EXPO_PUBLIC_ELEVENLABS_API_KEY');
   const voiceId =
     getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID_FEMALE') ||
@@ -78,24 +63,14 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
     getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID') ||
     null;
 
-  if (FORCE_TEST_MODE) {
-    console.log('=== ELEVENLABS DEBUG ===');
-    console.log('API KEY (process.env):', process.env.EXPO_PUBLIC_ELEVENLABS_API_KEY?.substring(0, 8));
-    console.log('KEY VIA getExpoPublic:', getExpoPublic('EXPO_PUBLIC_ELEVENLABS_API_KEY')?.substring(0, 8));
-    console.log('VOICE ID FEMALE:', getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID_FEMALE'));
-    console.log('VOICE ID MALE:', getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID_MALE'));
-    console.log('VOICE ID:', getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID'));
-    console.log('========================');
-  }
-
   if (!apiKey) {
-    console.error('ELEVENLABS: No API key found');
+    console.warn('[TTS] No ElevenLabs API key — expo-speech fallback');
     await speakWithExpoSpeech(textToSpeak);
     return { ok: true, reason: 'expo_speech_fallback' };
   }
 
   if (!voiceId) {
-    console.error('ELEVENLABS: No voice ID found in any env var');
+    console.warn('[TTS] No ElevenLabs voice ID — expo-speech fallback');
     await speakWithExpoSpeech(textToSpeak);
     return { ok: true, reason: 'expo_speech_fallback' };
   }
@@ -113,36 +88,26 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
         body: JSON.stringify({
           text: textToSpeak,
           model_id: 'eleven_flash_v2_5',
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-          },
+          voice_settings: { stability: 0.5, similarity_boost: 0.75 },
         }),
       },
     );
 
-    console.log('ElevenLabs status:', response.status);
-    console.log('ElevenLabs response ok:', response.ok);
-
     if (!response.ok) {
       const err = await response.text();
-      console.error('ElevenLabs error:', err);
-      reportTts('failed');
+      console.error('[TTS] ElevenLabs error', response.status, err.slice(0, 200));
       await speakWithExpoSpeech(textToSpeak);
       return { ok: true, reason: 'expo_speech_fallback' };
     }
 
-    // Decode audio to base64
     const arrayBuffer = await response.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
 
     if (bytes.byteLength < 100) {
-      console.warn('[TTS] tiny audio buffer — expo-speech fallback');
       await speakWithExpoSpeech(textToSpeak);
       return { ok: true, reason: 'expo_speech_fallback' };
     }
 
-    // Chunked base64 encoding to avoid blocking the JS thread
     let binary = '';
     const chunkSize = 8192;
     for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -167,7 +132,6 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
     );
     _activeSound = sound;
 
-    reportTts('success');
     return new Promise((resolve) => {
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
@@ -177,7 +141,6 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
           resolve({ ok: true });
         }
       });
-      // Safety timeout: resolve after 60s regardless
       setTimeout(() => {
         void sound.unloadAsync().catch(() => {});
         _activeSound = null;
@@ -186,7 +149,6 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
     });
   } catch (e) {
     console.warn('[TTS] error:', e);
-    reportTts('failed');
     await speakWithExpoSpeech(textToSpeak);
     return { ok: true, reason: 'expo_speech_fallback' };
   }

@@ -29,3 +29,18 @@ export function isoYmdToMmDdYyyy(iso: string | null | undefined): string {
   if (!m) return '';
   return `${m[2]}-${m[3]}-${m[1]}`;
 }
+
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'] as const;
+const MONTH_SHORT  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] as const;
+
+/** Format a Date or ISO string → "May 21, 2026" (full) or "May 21" (short). */
+export function formatDisplayDate(date: Date | string, style: 'full' | 'short' = 'full'): string {
+  const d = typeof date === 'string'
+    ? new Date(date.includes('T') ? date : `${date}T12:00:00`)
+    : date;
+  if (isNaN(d.getTime())) return '';
+  const month = style === 'short' ? MONTH_SHORT[d.getMonth()] : MONTH_NAMES[d.getMonth()];
+  return style === 'short'
+    ? `${month} ${d.getDate()}`
+    : `${month} ${d.getDate()}, ${d.getFullYear()}`;
+}

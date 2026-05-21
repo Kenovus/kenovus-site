@@ -574,12 +574,10 @@ export default function NutritionLog() {
       )}
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView
             style={s.scroll}
             contentContainerStyle={[s.scrollContent, { paddingBottom: insets.bottom + 32 }]}
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
           >
 
             {/* ── Search results / Recent foods ───────────────── */}
@@ -743,7 +741,6 @@ export default function NutritionLog() {
             </View>
 
           </ScrollView>
-        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
 
       {/* ── Quick Add modal ────────────────────────────────────── */}

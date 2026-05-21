@@ -33,7 +33,19 @@
     }
   },
   "submit": {
-    "production": {},
-    "preview": {}
+    "production": {
+      "ios": {
+        "appleId": "cpcs59whcw@privaterelay.appleid.com",
+        "ascAppId": "6762591868",
+        "appleTeamId": "FVK8WSZXAH"
+      }
+    },
+    "preview": {
+      "ios": {
+        "appleId": "cpcs59whcw@privaterelay.appleid.com",
+        "ascAppId": "6762591868",
+        "appleTeamId": "FVK8WSZXAH"
+      }
+    }
   }
 }

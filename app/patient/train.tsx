@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { fetchDailyWins, upsertDailyWins } from '@/lib/dailyWins';
 import { fetchPatientIdForAuthUser } from '@/lib/onboarding/patient';
 import { insertTrainingLog, fetchTrainingLogs, totalWorkingSetsForLog, type TrainingLogRow } from '@/lib/trainingLogs';
+import { formatDisplayDate } from '@/lib/dateUsFormat';
 import { useAppTheme } from '@/lib/theme/ThemeProvider';
 
 const GOLD  = '#BF8D36';
@@ -83,6 +84,89 @@ function DumbbellIcon({ color }: { color: string }) {
   );
 }
 
+// ── Monthly Calendar Component ────────────────────────────────────────────────
+function MonthlyCalendar({ history, today, CARD, BORD, TX, MT, GOLD, GREEN }: {
+  history: TrainingLogRow[]; today: string;
+  CARD: string; BORD: string; TX: string; MT: string; GOLD: string; GREEN: string;
+}) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-based
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDow = new Date(year, month, 1).getDay(); // 0=Sun
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DOW_SHORT = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+  // Build calendar cells (nulls for empty leading slots)
+  const cells: (number | null)[] = Array.from({ length: firstDow }, () => null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  // Stats
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+  const monthLogs = history.filter((l) => l.workout_date.startsWith(monthPrefix));
+  const totalWorkouts = monthLogs.length;
+  const totalVolume = monthLogs.reduce((sum, l) => sum + totalWorkingSetsForLog(l), 0);
+  const muscleCounts = new Map<string, number>();
+  monthLogs.forEach((l) => { const k = l.muscle_focus ?? 'other'; muscleCounts.set(k, (muscleCounts.get(k) ?? 0) + 1); });
+  const topMuscle = [...muscleCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]?.replace(/_/g, ' ') ?? '—';
+
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 10, color: MT, letterSpacing: 1.4, marginBottom: 8 }}>
+        {MONTH_NAMES[month].toUpperCase()} {year}
+      </Text>
+      <View style={{ backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORD, padding: 12, marginBottom: 10 }}>
+        {/* Day-of-week headers */}
+        <View style={{ flexDirection: 'row', marginBottom: 6 }}>
+          {DOW_SHORT.map((d) => (
+            <Text key={d} style={{ flex: 1, textAlign: 'center', fontFamily: 'DMSans_500Medium', fontSize: 10, color: MT }}>{d}</Text>
+          ))}
+        </View>
+        {/* Calendar grid */}
+        {Array.from({ length: Math.ceil(cells.length / 7) }, (_, row) => (
+          <View key={row} style={{ flexDirection: 'row', marginBottom: 4 }}>
+            {Array.from({ length: 7 }, (_, col) => {
+              const day = cells[row * 7 + col];
+              if (day == null) return <View key={col} style={{ flex: 1 }} />;
+              const iso = `${monthPrefix}-${String(day).padStart(2, '0')}`;
+              const isToday = iso === today;
+              const log = history.find((l) => l.workout_date === iso);
+              return (
+                <View key={col} style={{ flex: 1, alignItems: 'center', paddingVertical: 3 }}>
+                  <View style={{
+                    width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center',
+                    backgroundColor: isToday ? GOLD : log ? GREEN + '28' : 'transparent',
+                    borderWidth: isToday ? 0 : log ? 1 : 0,
+                    borderColor: GREEN + '60',
+                  }}>
+                    <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 12, color: isToday ? '#fff' : log ? GREEN : TX }}>{day}</Text>
+                  </View>
+                  {log && <Text style={{ fontSize: 9, marginTop: 1 }}>
+                    {SPLIT.find((s) => s.label.toLowerCase().includes((log.muscle_focus ?? '').replace(/_/g,' ')))?.emoji ?? '🏋️'}
+                  </Text>}
+                </View>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+      {/* Monthly stats */}
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {[
+          { label: 'Workouts', value: String(totalWorkouts) },
+          { label: 'Sets', value: String(totalVolume) },
+          { label: 'Top muscle', value: topMuscle },
+        ].map(({ label, value }) => (
+          <View key={label} style={{ flex: 1, backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORD, padding: 10, alignItems: 'center' }}>
+            <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 16, color: GOLD }}>{value}</Text>
+            <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: 10, color: MT, marginTop: 2 }}>{label}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 // ── Screen ────────────────────────────────────────────────────────────────────
 export default function TrainScreen() {
   const insets  = useSafeAreaInsets();
@@ -101,6 +185,7 @@ export default function TrainScreen() {
   const [history, setHistory]          = useState<TrainingLogRow[]>([]);
   const [selectedDate, setSelectedDate] = useState(today);
   const [loading, setLoading]          = useState(true);
+  const [calView, setCalView]           = useState<'weekly' | 'monthly'>('weekly');
   const week = weekDays();
 
   // Compute today's cycle day and the selected day's cycle day
@@ -213,10 +298,25 @@ export default function TrainScreen() {
         showsVerticalScrollIndicator={false}>
 
         {/* ── Header ── */}
-        <Text style={{ fontFamily: 'PTSerif_700Bold', fontSize: 26, color: TX, marginBottom: 2 }}>Train</Text>
-        <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: 13, color: MT, marginBottom: 16 }}>
-          5-day rotating split · Day {todayCycleDay} today
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <View>
+            <Text style={{ fontFamily: 'PTSerif_700Bold', fontSize: 26, color: TX, marginBottom: 2 }}>Train</Text>
+            <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: 13, color: MT }}>
+              5-day split · Day {todayCycleDay} today
+            </Text>
+          </View>
+          {/* Weekly / Monthly toggle */}
+          <View style={{ flexDirection: 'row', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', borderRadius: 10, padding: 3 }}>
+            {(['weekly', 'monthly'] as const).map((v) => (
+              <Pressable key={v} onPress={() => setCalView(v)}
+                style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, backgroundColor: calView === v ? GOLD : 'transparent' }}>
+                <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 12, color: calView === v ? '#fff' : MT }}>
+                  {v === 'weekly' ? 'Weekly' : 'Monthly'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
 
         {/* ── Today's Split Card ── */}
         <View style={{
@@ -240,19 +340,22 @@ export default function TrainScreen() {
           </Pressable>
         </View>
 
+        {calView === 'monthly' && <MonthlyCalendar history={history} today={today} CARD={CARD} BORD={BORD} TX={TX} MT={MT} GOLD={GOLD} GREEN={GREEN} />}
+
         {/* ── Weekly Calendar ── */}
-        <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 10, color: MT, letterSpacing: 1.4, marginBottom: 8 }}>THIS WEEK</Text>
-        <View style={{
+        {calView === 'weekly' && <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 10, color: MT, letterSpacing: 1.4, marginBottom: 8 }}>THIS WEEK</Text>}
+        {calView === 'weekly' && <View style={{
           backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORD,
           padding: 12, marginBottom: 14, flexDirection: 'row', justifyContent: 'space-between',
         }}>
           {week.map((day, i) => {
             const isToday = day.date === today;
             const isSelected = day.date === selectedDate;
-            const dayOffset = i - (todayIdx >= 0 ? todayIdx : 0);
-            const cd = ((((todayCycleDay - 1 + dayOffset) % 5) + 5) % 5) + 1;
-            const split = getSplitForDay(cd);
-            const hasLog = history.some((l) => l.workout_date === day.date);
+            // Show actual logged workout, not inferred split sequence
+            const logForDay = history.find((l) => l.workout_date === day.date);
+            const logEmoji = logForDay
+              ? (SPLIT.find((s) => s.label.toLowerCase().includes((logForDay.muscle_focus ?? '').replace(/_/g,' ')))?.emoji ?? '🏋️')
+              : null;
             return (
               <Pressable
                 key={day.date}
@@ -272,17 +375,19 @@ export default function TrainScreen() {
                 }}>
                   <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 13, color: isToday ? '#fff' : TX }}>{day.label}</Text>
                 </View>
-                <Text style={{ fontSize: 12 }}>{split.emoji}</Text>
-                {hasLog && <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: GREEN }}/>}
+                {logEmoji
+                  ? <Text style={{ fontSize: 12 }}>{logEmoji}</Text>
+                  : <View style={{ width: 12, height: 12 }}/>}
+                {logForDay && <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: GREEN }}/>}
               </Pressable>
             );
           })}
-        </View>
+        </View>}
 
-        {/* ── Selected Day Detail ── */}
-        <View style={{ backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORD, padding: 14, marginBottom: 14 }}>
+        {/* ── Selected Day Detail (weekly view only) ── */}
+        {calView === 'weekly' && <View style={{ backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORD, padding: 14, marginBottom: 14 }}>
           <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 10, color: MT, letterSpacing: 1.4, marginBottom: 8 }}>
-            {selectedDate === today ? 'TODAY' : selectedDate.slice(5).replace('-', '/')} — DAY {selectedCycleDay}
+            {selectedDate === today ? 'TODAY' : formatDisplayDate(selectedDate, 'short')} — DAY {selectedCycleDay}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <Text style={{ fontSize: 28 }}>{selectedSplit.emoji}</Text>
@@ -303,7 +408,7 @@ export default function TrainScreen() {
               <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: 13, color: MT }}>No workout logged — tap to log</Text>
             </Pressable>
           )}
-        </View>
+        </View>}
 
         {/* ── Full 5-Day Split Reference ── */}
         <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 10, color: MT, letterSpacing: 1.4, marginBottom: 8 }}>5-DAY SPLIT</Text>
@@ -367,7 +472,7 @@ export default function TrainScreen() {
                     {log.muscle_focus.replace(/_/g, ' ')}
                   </Text>
                   <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: 11, color: MT, marginTop: 2 }}>
-                    {log.workout_date} · {log.exercises.length} exercises · {totalWorkingSetsForLog(log)} sets
+                    {formatDisplayDate(log.workout_date, 'short')} · {log.exercises.length} exercises · {totalWorkingSetsForLog(log)} sets
                     {log.duration_minutes ? ` · ${log.duration_minutes} min` : ''}
                   </Text>
                 </View>

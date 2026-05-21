@@ -93,6 +93,7 @@ export function PatientCoachPanel({
   const draftRef = useRef('');
   const loadingRef = useRef(false);
   const lastAutoSpokenIdRef = useRef<string | null>(null);
+  const micTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!coachBootstrap) return;
@@ -190,6 +191,8 @@ export function PatientCoachPanel({
   useSpeechRecognitionEvent('result', (event) => {
     const best = event.results?.[0]?.transcript;
     if (best) {
+      // Cancel timeout — speech is coming in
+      if (micTimeoutRef.current) { clearTimeout(micTimeoutRef.current); micTimeoutRef.current = null; }
       setDraft(best);
       draftRef.current = best;
     }
@@ -200,11 +203,13 @@ export function PatientCoachPanel({
   });
 
   useSpeechRecognitionEvent('error', () => {
+    if (micTimeoutRef.current) { clearTimeout(micTimeoutRef.current); micTimeoutRef.current = null; }
     setRecordingUnavailable(true);
     stopVoice();
   });
 
   useSpeechRecognitionEvent('end', () => {
+    if (micTimeoutRef.current) { clearTimeout(micTimeoutRef.current); micTimeoutRef.current = null; }
     const t = draftRef.current.trim();
     if (!t) {
       stopVoice();
@@ -265,8 +270,14 @@ export function PatientCoachPanel({
     if (sonaTab) {
       setVoiceModalOpen(true);
     }
+    // 15-second hard timeout — stops mic and resets state if nothing is heard
+    if (micTimeoutRef.current) clearTimeout(micTimeoutRef.current);
+    micTimeoutRef.current = setTimeout(() => {
+      stopVoice();
+      setDraft((d) => d || "Didn't catch that — tap mic to try again");
+    }, 15_000);
     await startVoice();
-  }, [ensureSpeechReady, sonaTab, startVoice]);
+  }, [ensureSpeechReady, sonaTab, startVoice, stopVoice]);
 
   const toggleSonaVoice = useCallback(async () => {
     if (isListening) {

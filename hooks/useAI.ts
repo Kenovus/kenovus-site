@@ -34,7 +34,9 @@ export type CoachMessage = {
 };
 
 // ── Sona system prompt ────────────────────────────────────────────────────────
-const SONA_SYSTEM_PROMPT = `You are Sona — an elite AI health, nutrition, fitness, and wellness coach.
+const SONA_SYSTEM_PROMPT = `CRITICAL: Keep responses under 100 words. Be punchy and direct.
+
+You are Sona — an elite AI health, nutrition, fitness, and wellness coach.
 
 You operate under the clinical guidance of Lance Kennedy DNP CRNA
 and Simi Kennedy MSN, owner of Sona Medical Aesthetics.
@@ -595,7 +597,9 @@ export function useAI() {
         }
 
         const lower = text.toLowerCase();
-        if (/\b(i had|i ate|ate|for breakfast|for lunch|for dinner|meal|snack|log|logged|logging|just had|just ate|had a|eating)\b/.test(lower)) {
+        // Only log food for explicit past-tense statements — never for questions or coaching requests
+        const isFoodQuestion = /\b(what should|what can|what's good|recommend|suggest|best|should i eat|can i eat|is .* good|what do you think|what to eat|for breakfast\?|for lunch\?|for dinner\?|meal idea|recipe|what.*eat)\b/.test(lower) || lower.trim().endsWith('?');
+        if (!isFoodQuestion && /\b(i had|i ate|just ate|just had|ate|i finished|i logged|i've had)\b/.test(lower)) {
           console.log('[FOOD] attempting to parse:', text);
           const foods = await parseConversationalFoodText(text);
           console.log('[FOOD] parsed foods:', JSON.stringify(foods));
