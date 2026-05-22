@@ -243,23 +243,19 @@ export function PatientCoachPanel({
   };
 
   const ensureSpeechReady = useCallback(async (): Promise<boolean> => {
-    if (recordingUnavailable) {
-      Alert.alert('Voice unavailable', 'Speech recognition is not available on this device right now.');
-      return false;
-    }
+    // Silently fail if speech recognition is unavailable — no blocking alerts
+    if (recordingUnavailable) return false;
     if (!hasSpeechRecognition || !ExpoSpeechRecognitionModule) {
       setRecordingUnavailable(true);
-      Alert.alert('Voice unavailable', 'Voice input needs a native development build. Text chat still works in Expo Go.');
       return false;
     }
     if (!ExpoSpeechRecognitionModule.isRecognitionAvailable()) {
       setRecordingUnavailable(true);
-      Alert.alert('Voice unavailable', 'Speech recognition is not available on this device.');
       return false;
     }
     const perms = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
     if (!perms.granted) {
-      Alert.alert('Permission needed', 'Please allow microphone and speech recognition in settings.');
+      Alert.alert('Microphone permission needed', 'Please allow microphone access in Settings to use voice.');
       return false;
     }
     return true;
@@ -270,12 +266,12 @@ export function PatientCoachPanel({
     if (sonaTab) {
       setVoiceModalOpen(true);
     }
-    // 15-second hard timeout — stops mic and resets state if nothing is heard
+    // 5-second hard timeout — silently returns to idle if nothing is heard
     if (micTimeoutRef.current) clearTimeout(micTimeoutRef.current);
     micTimeoutRef.current = setTimeout(() => {
       stopVoice();
-      setDraft((d) => d || "Didn't catch that — tap mic to try again");
-    }, 15_000);
+      setDraft('');
+    }, 5_000);
     await startVoice();
   }, [ensureSpeechReady, sonaTab, startVoice, stopVoice]);
 

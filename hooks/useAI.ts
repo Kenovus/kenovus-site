@@ -186,6 +186,7 @@ When you have user context, proactively guide:
 - Consistency streak → reinforce identity, not just praise
 - GLP-1 user not eating enough → muscle preservation warning
 - Upcoming aesthetic treatment → relevant pre/post care reminder
+- InBody / DEXA / body scan mentioned → immediately offer to log results, ask for numbers or photo upload — never just acknowledge and move on
 
 ====================
 SCOPE
@@ -584,6 +585,54 @@ export function useAI() {
           return;
         }
 
+        // ── InBody / DEXA / body scan intent ──────────────────────────────────
+        const isInBodyIntent = /\b(inbody|in body|dexa|body scan|body composition|scan results|body fat results|log.*inbody|upload.*results?)\b/i.test(text);
+        const hasInBodyNumbers = /\b(body fat|muscle|lean mass|visceral|weight)\b.*\d|\d.*\b(body fat|muscle|lean mass|visceral)\b/i.test(text);
+
+        if (isInBodyIntent && !hasInBodyNumbers) {
+          // Ask for results — photo or numbers
+          const inbodyReply = "I can help you log your InBody results. You can:\n• Upload a photo of your results sheet\n• Or tell me your numbers directly: weight, body fat %, muscle mass, and visceral fat level.\n\nWhich works best?";
+          setMessages((m) => [...m, { id: mid(), role: 'assistant', text: inbodyReply }]);
+          if (cid) await supabase.from('ai_messages').insert({ conversation_id: cid, role: 'assistant', content: inbodyReply });
+          await refreshCoachDailyUsage();
+          return;
+        }
+
+        if (isInBodyIntent && hasInBodyNumbers && patientId) {
+          // Extract numbers and save to inbody_results
+          const bfMatch = text.match(/body\s*fat[:\s]+(\d+(?:\.\d+)?)\s*%?/i);
+          const muscleMatch = text.match(/(?:muscle|lean\s*mass)[:\s]+(\d+(?:\.\d+)?)\s*(?:lbs?|kg)?/i);
+          const weightMatch2 = text.match(/weight[:\s]+(\d+(?:\.\d+)?)\s*(?:lbs?|kg)?/i);
+          const visceralMatch = text.match(/visceral[:\s]+(\d+(?:\.\d+)?)/i);
+
+          const bodyFat = bfMatch ? Number(bfMatch[1]) : null;
+          const muscleMass = muscleMatch ? Number(muscleMatch[1]) : null;
+          const weightVal = weightMatch2 ? Number(weightMatch2[1]) : null;
+          const visceral = visceralMatch ? Number(visceralMatch[1]) : null;
+
+          const row: Record<string, unknown> = {
+            patient_id: patientId,
+            test_date: localDateKey(new Date()),
+          };
+          if (bodyFat != null) row.body_fat_pct = bodyFat;
+          if (muscleMass != null) row.muscle_mass_lbs = muscleMass;
+          if (weightVal != null) row.weight_lbs = weightVal;
+          if (visceral != null) row.visceral_fat_level = visceral;
+
+          const { error: ibError } = await supabase.from('inbody_results').insert(row);
+          const parts: string[] = [];
+          if (bodyFat != null) parts.push(`Body fat: ${bodyFat}%`);
+          if (muscleMass != null) parts.push(`Muscle: ${muscleMass} lbs`);
+          if (weightVal != null) parts.push(`Weight: ${weightVal} lbs`);
+          const inbodyReply = ibError
+            ? "I caught your numbers but couldn't save them just now. Try again."
+            : `Logged. ${parts.join(' · ')}. Here's what this means for your goals — let's dig into it.`;
+          setMessages((m) => [...m, { id: mid(), role: 'assistant', text: inbodyReply }]);
+          if (cid) await supabase.from('ai_messages').insert({ conversation_id: cid, role: 'assistant', content: inbodyReply });
+          await refreshCoachDailyUsage();
+          return;
+        }
+
         // ── Meal copy / repeat intent (fast Supabase path, no Claude needed) ──
         const mealCopyIntent = detectMealCopyIntent(text);
         if (mealCopyIntent && user?.id) {
@@ -827,27 +876,42 @@ export function useAI() {
 
       let finalReply = '';
       let firstChunk = true;
+
       try {
-        for await (const chunk of anthropicMessagesStream({
-          system: SONA_SYSTEM_PROMPT,
-          user: augmentedUser,
-          maxTokens: 200,
-        })) {
-          if (firstChunk) {
-            firstChunk = false;
-            setLoading(false); // first word arrived — hide "thinking" spinner immediately
-          }
-          finalReply += chunk;
-          setMessages((m) => m.map((msg) =>
-            msg.id === assistantId ? { ...msg, text: finalReply } : msg,
-          ));
-        }
+        // 20-second hard deadline — UI can never stay stuck in loading state
+        let _resolveTimeout: (() => void) | null = null;
+        const timeoutPromise = new Promise<void>((_, reject) => {
+          const t = setTimeout(() => reject(new Error('stream_timeout')), 20_000);
+          _resolveTimeout = () => clearTimeout(t);
+        });
+
+        await Promise.race([
+          (async () => {
+            for await (const chunk of anthropicMessagesStream({
+              system: SONA_SYSTEM_PROMPT,
+              user: augmentedUser,
+              maxTokens: 200,
+            })) {
+              if (firstChunk) {
+                firstChunk = false;
+                setLoading(false); // first word arrived — hide spinner immediately
+              }
+              finalReply += chunk;
+              setMessages((m) => m.map((msg) =>
+                msg.id === assistantId ? { ...msg, text: finalReply } : msg,
+              ));
+            }
+            _resolveTimeout?.();
+          })(),
+          timeoutPromise,
+        ]);
       } catch (streamErr) {
-        console.warn('[Sona] Streaming error:', streamErr);
+        const isTimeout = (streamErr as Error)?.message === 'stream_timeout';
+        console.warn('[Sona]', isTimeout ? 'Timed out after 20s' : 'Streaming error:', streamErr);
       }
 
       if (!finalReply) {
-        finalReply = 'I can help with wellness planning, but I cannot reach the AI service right now. Try again in a moment.';
+        finalReply = "I'm taking too long — try again.";
         setMessages((m) => m.map((msg) =>
           msg.id === assistantId ? { ...msg, text: finalReply } : msg,
         ));

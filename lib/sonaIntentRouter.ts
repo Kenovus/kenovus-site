@@ -128,6 +128,18 @@ export function routeSonaIntent(transcript: string): SonaIntent {
     };
   }
 
+  // InBody / DEXA / body scan photo upload → navigate to scan screen
+  if (
+    /\b(inbody|in body|dexa|body scan|body composition|scan results|body fat results)\b/.test(t) &&
+    /\b(upload|photo|picture|scan|take a photo)\b/.test(t)
+  ) {
+    return {
+      type: 'navigate',
+      route: '/patient/progress/inbody',
+      confirmationMessage: 'Opening your InBody screen — you can upload your results photo there.',
+    };
+  }
+
   return { type: 'conversational' };
 }
 

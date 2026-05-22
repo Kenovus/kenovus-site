@@ -26,17 +26,11 @@ export function SonaVoiceProvider({ children }: { children: React.ReactNode }) {
   const [sonaState, setSonaState] = useState<SonaState>('idle');
 
   const startListening = async () => {
-    if (!hasSpeechRecognition || !ExpoSpeechRecognitionModule) {
-      Alert.alert('Voice unavailable', 'Voice available in full app');
-      return;
-    }
-    if (!ExpoSpeechRecognitionModule.isRecognitionAvailable()) {
-      Alert.alert('Voice unavailable', 'Voice available in full app');
-      return;
-    }
+    if (!hasSpeechRecognition || !ExpoSpeechRecognitionModule) return;
+    if (!ExpoSpeechRecognitionModule.isRecognitionAvailable()) return;
     const perms = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
     if (!perms.granted) {
-      Alert.alert('Permission needed', 'Please allow microphone and speech recognition in settings.');
+      Alert.alert('Microphone permission needed', 'Please allow microphone access in Settings.');
       return;
     }
     setIsListening(true);
