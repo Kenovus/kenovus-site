@@ -30,7 +30,7 @@ function stripForSpeech(text: string): string {
 }
 
 export async function speakCoachReply(text: string): Promise<{ ok: boolean; reason?: string }> {
-  console.log('SPEAKING:', text.substring(0, 30));
+  console.log('speakCoachReply called:', text.substring(0, 30));
 
   await stopSpeaking();
 
