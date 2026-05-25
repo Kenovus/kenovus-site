@@ -51,31 +51,26 @@ async function speakWithExpoSpeech(text: string): Promise<void> {
 }
 
 export async function speakCoachReply(text: string): Promise<{ ok: boolean; reason?: string }> {
+  const apiKey = getExpoPublic('EXPO_PUBLIC_ELEVENLABS_API_KEY');
+  const voiceId =
+    getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID_FEMALE') ||
+    getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID_MALE') ||
+    getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID');
+  console.log('EL apiKey:', apiKey?.substring(0, 8));
+  console.log('EL voiceId:', voiceId);
+  if (!apiKey || !voiceId) {
+    console.error('EL: missing credentials, using fallback');
+    Speech.speak(text);
+    return { ok: false, reason: 'missing_credentials' };
+  }
+
   await stopSpeaking();
 
   const textToSpeak = stripForSpeech(text);
   if (!textToSpeak) return { ok: false, reason: 'empty' };
 
-  const apiKey = getExpoPublic('EXPO_PUBLIC_ELEVENLABS_API_KEY');
-  const voiceId =
-    getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID_FEMALE') ||
-    getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID_MALE') ||
-    getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID') ||
-    null;
-
-  if (!apiKey) {
-    console.warn('[TTS] No ElevenLabs API key — expo-speech fallback');
-    await speakWithExpoSpeech(textToSpeak);
-    return { ok: true, reason: 'expo_speech_fallback' };
-  }
-
-  if (!voiceId) {
-    console.warn('[TTS] No ElevenLabs voice ID — expo-speech fallback');
-    await speakWithExpoSpeech(textToSpeak);
-    return { ok: true, reason: 'expo_speech_fallback' };
-  }
-
   try {
+    console.log('EL: calling API with voice:', voiceId);
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
       {
@@ -92,12 +87,13 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
         }),
       },
     );
+    console.log('EL: response status:', response.status);
 
     if (!response.ok) {
       const err = await response.text();
-      console.error('[TTS] ElevenLabs error', response.status, err.slice(0, 200));
-      await speakWithExpoSpeech(textToSpeak);
-      return { ok: true, reason: 'expo_speech_fallback' };
+      console.error('EL: API error:', err);
+      Speech.speak(textToSpeak);
+      return { ok: false, reason: 'api_error' };
     }
 
     const arrayBuffer = await response.arrayBuffer();

@@ -428,39 +428,13 @@ export function PatientCoachPanel({
         )}
       </ScrollView>
 
-      {sonaTab ? (
-        <View style={styles.sonaInputCol}>
-          <View style={styles.askRow}>
-            <TextInput
-              ref={inputRef}
-              defaultValue=""
-              onChangeText={onDraftChange}
-              placeholder="Ask Sona anything…"
-              placeholderTextColor={tokens.colors.textCaption}
-              style={styles.askInput}
-              multiline
-              {...inputAccessory}
-              autoCorrect={false}
-              spellCheck={false}
-              blurOnSubmit={false}
-            />
-            <Pressable
-              onPress={() => { onMicTap?.(); void toggleMic(); }}
-              style={[styles.mic, isListening && styles.micOn, (!hasSpeechRecognition || recordingUnavailable) && styles.micOff]}>
-              <Ionicons name="mic-outline" size={22} color={tokens.colors.accent} />
-            </Pressable>
-            <Pressable onPress={() => void onSend()} style={[styles.sendCircle, loading && styles.sendDisabled]}>
-              <Text style={styles.sendCircleText}>↑</Text>
-            </Pressable>
-          </View>
-        </View>
-      ) : (
+      <View style={sonaTab ? styles.sonaInputCol : undefined}>
         <View style={styles.askRow}>
           <TextInput
             ref={inputRef}
             defaultValue=""
             onChangeText={onDraftChange}
-            placeholder="Ask Sona…"
+            placeholder={sonaTab ? 'Ask Sona anything…' : 'Ask Sona…'}
             placeholderTextColor={tokens.colors.textCaption}
             style={styles.askInput}
             multiline
@@ -469,14 +443,16 @@ export function PatientCoachPanel({
             spellCheck={false}
             blurOnSubmit={false}
           />
-          <Pressable onPress={() => void toggleMic()} style={[styles.mic, isListening && styles.micOn, (!hasSpeechRecognition || recordingUnavailable) && styles.micOff]}>
+          <Pressable
+            onPress={() => { onMicTap?.(); void toggleMic(); }}
+            style={[styles.mic, isListening && styles.micOn, (!hasSpeechRecognition || recordingUnavailable) && styles.micOff]}>
             <Ionicons name="mic-outline" size={22} color={tokens.colors.accent} />
           </Pressable>
           <Pressable onPress={() => void onSend()} style={[styles.sendCircle, loading && styles.sendDisabled]}>
             <Text style={styles.sendCircleText}>↑</Text>
           </Pressable>
         </View>
-      )}
+      </View>
 
       <Pressable style={styles.doneKb} onPress={() => Keyboard.dismiss()}>
         <Text style={styles.doneKbText}>Done</Text>
