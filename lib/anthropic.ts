@@ -6,7 +6,7 @@
 import Constants from 'expo-constants';
 import { CLAUDE_MODEL } from '@/lib/aiModel';
 
-const VISION_MODEL = 'claude-opus-4-7';
+const VISION_MODEL = 'claude-opus-4-5';
 const MODEL = CLAUDE_MODEL;
 export const ACTIVE_ANTHROPIC_MODEL = MODEL;
 

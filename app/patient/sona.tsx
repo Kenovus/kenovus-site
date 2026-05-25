@@ -29,8 +29,8 @@ const GLP1_CHIPS = [
 ] as const;
 
 const NON_GLP_CHIPS = [
-  'My skin goals', 'Book a treatment', 'Skincare routine',
-  'My appointments', "What's new at Sona", 'My progress',
+  'Adjust my macros', 'My weight', 'Am I on track?',
+  'InBody trends', 'My labs', 'Log my workout',
 ] as const;
 
 function QuickChips({ isDark, chips, onPress }: { isDark: boolean; chips: readonly string[]; onPress: (t: string) => void }) {
