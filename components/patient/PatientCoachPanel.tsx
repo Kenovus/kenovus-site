@@ -78,7 +78,6 @@ export function PatientCoachPanel({
     handleTranscriptFinal,
     registerSendToAI,
   } = useSonaVoice();
-  const [draft, setDraft] = useState('');
   const [recordingUnavailable, setRecordingUnavailable] = useState(false);
   const [autoReadAloud, setAutoReadAloud] = useState(true);
   /** Only auto-play TTS for replies to messages sent via voice, not typed text. */
@@ -89,28 +88,33 @@ export function PatientCoachPanel({
   const [weeklyUserOpened, setWeeklyUserOpened] = useState(false);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const inputRef = useRef<TextInput>(null);
   const draftRef = useRef('');
   const lastAutoSpokenIdRef = useRef<string | null>(null);
   const micTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (!coachBootstrap) return;
-    setDraft(coachBootstrap.kind === 'text' ? coachBootstrap.text : '');
-    onCoachBootstrapConsumed?.();
-  }, [coachBootstrap, onCoachBootstrapConsumed]);
+  const setDraftText = useCallback((text: string) => {
+    draftRef.current = text;
+    inputRef.current?.setNativeProps({ text });
+  }, []);
 
   useEffect(() => {
-    draftRef.current = draft;
-  }, [draft]);
+    if (!coachBootstrap) return;
+    setDraftText(coachBootstrap.kind === 'text' ? coachBootstrap.text : '');
+    onCoachBootstrapConsumed?.();
+  }, [coachBootstrap, onCoachBootstrapConsumed, setDraftText]);
+
+  const onDraftChange = useCallback((text: string) => {
+    draftRef.current = text;
+  }, []);
 
   const sendVoiceToAI = useCallback(
     (transcript: string) => {
       setLastInputWasVoice(true);
-      draftRef.current = '';
-      setDraft('');
+      setDraftText('');
       void send(transcript);
     },
-    [send],
+    [send, setDraftText],
   );
 
   useEffect(() => {
@@ -192,16 +196,15 @@ export function PatientCoachPanel({
 
   useEffect(() => {
     if (!currentTranscript) return;
-    setDraft(currentTranscript);
-  }, [currentTranscript]);
+    setDraftText(currentTranscript);
+  }, [currentTranscript, setDraftText]);
 
   useSpeechRecognitionEvent('result', (event) => {
     const best = event.results?.[0]?.transcript;
     if (best) {
       // Cancel timeout — speech is coming in
       if (micTimeoutRef.current) { clearTimeout(micTimeoutRef.current); micTimeoutRef.current = null; }
-      setDraft(best);
-      draftRef.current = best;
+      setDraftText(best);
     }
   });
 
@@ -226,9 +229,9 @@ export function PatientCoachPanel({
   });
 
   const onSend = async () => {
-    const t = draft.trim();
+    const t = draftRef.current.trim();
     if (!t || loading) return;
-    setDraft('');
+    setDraftText('');
     setLastInputWasVoice(false);
     Keyboard.dismiss();
     await send(t);
@@ -262,10 +265,10 @@ export function PatientCoachPanel({
     if (micTimeoutRef.current) clearTimeout(micTimeoutRef.current);
     micTimeoutRef.current = setTimeout(() => {
       stopVoice();
-      setDraft('');
+      setDraftText('');
     }, 5_000);
     await startVoice();
-  }, [ensureSpeechReady, sonaTab, startVoice, stopVoice]);
+  }, [ensureSpeechReady, sonaTab, startVoice, stopVoice, setDraftText]);
 
   const toggleSonaVoice = useCallback(async () => {
     if (isListening) {
@@ -305,7 +308,7 @@ export function PatientCoachPanel({
 
   let modalStatusLine = 'Got it…';
   if (isListening) {
-    modalStatusLine = draft?.trim() ? draft : 'Listening…';
+    modalStatusLine = draftRef.current.trim() ? draftRef.current : 'Listening…';
   } else if (loading) {
     modalStatusLine = 'Thinking…';
   } else if (lastAssistant) {
@@ -429,13 +432,17 @@ export function PatientCoachPanel({
         <View style={styles.sonaInputCol}>
           <View style={styles.askRow}>
             <TextInput
-              value={draft}
-              onChangeText={setDraft}
+              ref={inputRef}
+              defaultValue=""
+              onChangeText={onDraftChange}
               placeholder="Ask Sona anything…"
               placeholderTextColor={tokens.colors.textCaption}
               style={styles.askInput}
               multiline
               {...inputAccessory}
+              autoCorrect={false}
+              spellCheck={false}
+              blurOnSubmit={false}
             />
             <Pressable
               onPress={() => { onMicTap?.(); void toggleMic(); }}
@@ -450,13 +457,17 @@ export function PatientCoachPanel({
       ) : (
         <View style={styles.askRow}>
           <TextInput
-            value={draft}
-            onChangeText={setDraft}
+            ref={inputRef}
+            defaultValue=""
+            onChangeText={onDraftChange}
             placeholder="Ask Sona…"
             placeholderTextColor={tokens.colors.textCaption}
             style={styles.askInput}
             multiline
             {...inputAccessory}
+            autoCorrect={false}
+            spellCheck={false}
+            blurOnSubmit={false}
           />
           <Pressable onPress={() => void toggleMic()} style={[styles.mic, isListening && styles.micOn, (!hasSpeechRecognition || recordingUnavailable) && styles.micOff]}>
             <Ionicons name="mic-outline" size={22} color={tokens.colors.accent} />

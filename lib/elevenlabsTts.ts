@@ -108,15 +108,14 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
       return { ok: true, reason: 'expo_speech_fallback' };
     }
 
-    let binary = '';
-    const chunkSize = 8192;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    const chunks: string[] = [];
+    for (let i = 0; i < bytes.length; i += 8192) {
+      chunks.push(String.fromCharCode(...bytes.subarray(i, i + 8192)));
     }
-    const base64 = btoa(binary);
+    const base64Audio = btoa(chunks.join(''));
 
     const fileUri = (FileSystem.cacheDirectory ?? '') + `sona_${Date.now()}.mp3`;
-    await FileSystem.writeAsStringAsync(fileUri, base64, {
+    await FileSystem.writeAsStringAsync(fileUri, base64Audio, {
       encoding: FileSystem.EncodingType.Base64,
     });
 
@@ -128,7 +127,7 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
 
     const { sound } = await Audio.Sound.createAsync(
       { uri: fileUri },
-      { shouldPlay: true, volume: 1.0 },
+      { shouldPlay: true, volume: 1.0, progressUpdateIntervalMillis: 500 },
     );
     _activeSound = sound;
 
@@ -145,7 +144,7 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
         void sound.unloadAsync().catch(() => {});
         _activeSound = null;
         resolve({ ok: true });
-      }, 60_000);
+      }, 120_000);
     });
   } catch (e) {
     console.warn('[TTS] error:', e);
