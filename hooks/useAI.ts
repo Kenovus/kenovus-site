@@ -919,38 +919,44 @@ export function useAI() {
 
       const responseMs = Date.now() - startedAt;
 
-      if (cid) {
-        await supabase.from('ai_messages').insert({
-          conversation_id: cid,
-          role: 'assistant',
-          content: finalReply,
-        });
-        await supabase
-          .from('ai_conversations')
-          .update({ last_message_at: new Date().toISOString() })
-          .eq('id', cid);
-      }
-      await logAIAudit({
-        patientId,
-        clinicId: profile?.clinic_id ?? null,
-        sessionId: cid,
-        role: 'assistant',
-        content: finalReply,
-        modelUsed: null,
-        tokensInput: null,
-        tokensOutput: null,
-        responseTimeMs: responseMs,
-        flaggedForReview: false,
-        flagReason: null,
-      });
-      await maybeFlagGlp1DoseReviewForSimi({
-        patientId,
-        clinicId: profile?.clinic_id ?? null,
-        profile,
-        userMessage: text,
-        sessionId: cid,
-      });
-      await refreshCoachDailyUsage();
+      // Fire and forget — don't block UI on logging
+      void Promise.race([
+        (async () => {
+          if (cid) {
+            await supabase.from('ai_messages').insert({
+              conversation_id: cid,
+              role: 'assistant',
+              content: finalReply,
+            });
+            await supabase
+              .from('ai_conversations')
+              .update({ last_message_at: new Date().toISOString() })
+              .eq('id', cid);
+          }
+          await logAIAudit({
+            patientId,
+            clinicId: profile?.clinic_id ?? null,
+            sessionId: cid,
+            role: 'assistant',
+            content: finalReply,
+            modelUsed: null,
+            tokensInput: null,
+            tokensOutput: null,
+            responseTimeMs: responseMs,
+            flaggedForReview: false,
+            flagReason: null,
+          });
+          await maybeFlagGlp1DoseReviewForSimi({
+            patientId,
+            clinicId: profile?.clinic_id ?? null,
+            profile,
+            userMessage: text,
+            sessionId: cid,
+          });
+          await refreshCoachDailyUsage();
+        })(),
+        new Promise((resolve) => setTimeout(resolve, 3000)),
+      ]).catch(() => console.warn('Post-response logging timed out'));
     } finally {
       setLoading(false);
     }
