@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
 import { useFocusEffect } from 'expo-router';
-import { getExpoPublic } from '@/lib/expoPublicEnv';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -69,6 +68,8 @@ export function PatientCoachPanel({
   const styles = createStyles(tokens);
   const { profile } = useAuth();
   const { messages, loading, send, coachDailyUsage, emergencyVisible, dismissEmergency, callEmergency } = useAI();
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
   const weekly = useWeeklyNarrative();
   const {
     isListening,
@@ -166,12 +167,6 @@ export function PatientCoachPanel({
   const playReplyAloud = useCallback(async (text: string) => {
     const responseText = text.trim();
     if (!responseText) return;
-    // Use getExpoPublic so the key is found even when Metro cache is stale
-    const elevenLabsApiKey = getExpoPublic('EXPO_PUBLIC_ELEVENLABS_API_KEY');
-    if (!elevenLabsApiKey) {
-      console.warn('[Sona] Missing EXPO_PUBLIC_ELEVENLABS_API_KEY; skipping voice playback.');
-      return;
-    }
     setIsSpeakingAloud(true);
     try {
       const r = await speakCoachReply(responseText);
@@ -181,17 +176,27 @@ export function PatientCoachPanel({
     }
   }, []);
 
-  // TTS fires ONLY for voice-input replies, NOT typed messages
+  // TTS fires ONLY for voice-input replies, NOT typed messages — debounced so streaming completes first
   useEffect(() => {
     if (!autoReadAloud || !lastInputWasVoice) return;
-    if (loading) return; // wait for streaming to finish
+    if (loading) return;
     const last = messages[messages.length - 1];
     if (!last || last.role !== 'assistant') return;
-    if (!last.text || last.text.length < 10) return;
+    if (!last.text) return;
     if (lastAutoSpokenIdRef.current === last.id) return;
-    lastAutoSpokenIdRef.current = last.id;
-    void playReplyAloud(last.text);
-    setLastInputWasVoice(false);
+
+    const messageId = last.id;
+    const timer = setTimeout(() => {
+      if (lastAutoSpokenIdRef.current === messageId) return;
+      const latest = messagesRef.current[messagesRef.current.length - 1];
+      if (!latest || latest.id !== messageId || latest.role !== 'assistant') return;
+      if (!latest.text || latest.text.length < 10) return;
+      lastAutoSpokenIdRef.current = messageId;
+      setLastInputWasVoice(false);
+      void playReplyAloud(latest.text);
+    }, 750);
+
+    return () => clearTimeout(timer);
   }, [loading, messages, autoReadAloud, lastInputWasVoice, playReplyAloud]);
 
   useEffect(() => {

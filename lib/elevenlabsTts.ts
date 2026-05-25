@@ -29,28 +29,14 @@ function stripForSpeech(text: string): string {
     .slice(0, 2500);
 }
 
-async function speakWithExpoSpeech(text: string): Promise<void> {
-  const available = await Speech.getAvailableVoicesAsync().catch(() => []);
-  const preferred = available.find(
-    (v) => v.language?.startsWith('en') && (
-      v.name?.toLowerCase().includes('samantha') ||
-      v.name?.toLowerCase().includes('karen') ||
-      v.name?.toLowerCase().includes('female')
-    ),
-  );
-  await new Promise<void>((resolve) => {
-    Speech.speak(text, {
-      language: 'en-US',
-      voice: preferred?.identifier,
-      rate: 0.92,
-      pitch: 1.0,
-      onDone: resolve,
-      onError: (e) => { console.warn('[TTS] expo-speech error:', e); resolve(); },
-    });
-  });
-}
-
 export async function speakCoachReply(text: string): Promise<{ ok: boolean; reason?: string }> {
+  console.log('SPEAKING:', text.substring(0, 30));
+
+  await stopSpeaking();
+
+  const textToSpeak = stripForSpeech(text);
+  if (!textToSpeak) return { ok: false, reason: 'empty' };
+
   const apiKey = getExpoPublic('EXPO_PUBLIC_ELEVENLABS_API_KEY');
   const voiceId =
     getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID_FEMALE') ||
@@ -58,25 +44,15 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
     getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID');
   console.log('EL apiKey:', apiKey?.substring(0, 8));
   console.log('EL voiceId:', voiceId);
-  if (!apiKey || !voiceId) {
-    console.error('EL: missing credentials, using fallback');
-    Speech.speak(text);
-    return { ok: false, reason: 'missing_credentials' };
-  }
-
-  await stopSpeaking();
-
-  const textToSpeak = stripForSpeech(text);
-  if (!textToSpeak) return { ok: false, reason: 'empty' };
 
   try {
     console.log('EL: calling API with voice:', voiceId);
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId ?? ''}`,
       {
         method: 'POST',
         headers: {
-          'xi-api-key': apiKey,
+          'xi-api-key': apiKey ?? '',
           'Content-Type': 'application/json',
           'Accept': 'audio/mpeg',
         },
@@ -98,11 +74,6 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
 
     const arrayBuffer = await response.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
-
-    if (bytes.byteLength < 100) {
-      await speakWithExpoSpeech(textToSpeak);
-      return { ok: true, reason: 'expo_speech_fallback' };
-    }
 
     const chunks: string[] = [];
     for (let i = 0; i < bytes.length; i += 8192) {
@@ -144,7 +115,7 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
     });
   } catch (e) {
     console.warn('[TTS] error:', e);
-    await speakWithExpoSpeech(textToSpeak);
-    return { ok: true, reason: 'expo_speech_fallback' };
+    Speech.speak(textToSpeak);
+    return { ok: false, reason: 'error' };
   }
 }
