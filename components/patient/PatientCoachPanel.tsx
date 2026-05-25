@@ -31,7 +31,6 @@ import {
   hasSpeechRecognition,
   useSpeechRecognitionEvent,
 } from '@/lib/safeSpeechRecognition';
-import { routeSonaIntent } from '@/lib/sonaIntentRouter';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { standardTextInputProps } from '@/lib/textInputStandard';
 import { useAppTheme } from '@/lib/theme/ThemeProvider';
@@ -74,10 +73,10 @@ export function PatientCoachPanel({
   const {
     isListening,
     currentTranscript,
-    sonaState,
     startListening: startVoice,
     stopListening: stopVoice,
     handleTranscriptFinal,
+    registerSendToAI,
   } = useSonaVoice();
   const [draft, setDraft] = useState('');
   const [recordingUnavailable, setRecordingUnavailable] = useState(false);
@@ -91,7 +90,6 @@ export function PatientCoachPanel({
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const draftRef = useRef('');
-  const loadingRef = useRef(false);
   const lastAutoSpokenIdRef = useRef<string | null>(null);
   const micTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -105,11 +103,20 @@ export function PatientCoachPanel({
     draftRef.current = draft;
   }, [draft]);
 
-  useEffect(() => {
-    loadingRef.current = loading;
-  }, [loading]);
+  const sendVoiceToAI = useCallback(
+    (transcript: string) => {
+      setLastInputWasVoice(true);
+      draftRef.current = '';
+      setDraft('');
+      void send(transcript);
+    },
+    [send],
+  );
 
-  const lastHandledTranscriptRef = useRef<string | null>(null);
+  useEffect(() => {
+    registerSendToAI(sendVoiceToAI);
+    return () => registerSendToAI(undefined);
+  }, [registerSendToAI, sendVoiceToAI]);
 
   useFocusEffect(
     useCallback(() => {
@@ -217,21 +224,6 @@ export function PatientCoachPanel({
     }
     void handleTranscriptFinal(t);
   });
-
-  useEffect(() => {
-    const t = currentTranscript.trim();
-    if (!t) return;
-    if (sonaState !== 'thinking') return;
-    if (lastHandledTranscriptRef.current === t) return;
-    const intent = routeSonaIntent(t);
-    if (intent.type !== 'conversational') return;
-    if (loadingRef.current) return;
-    lastHandledTranscriptRef.current = t;
-    draftRef.current = '';
-    setDraft('');
-    setLastInputWasVoice(true);
-    void send(t);
-  }, [currentTranscript, sonaState, send]);
 
   const onSend = async () => {
     const t = draft.trim();

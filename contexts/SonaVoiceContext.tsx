@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 
@@ -15,11 +15,24 @@ interface SonaVoiceContextType {
   startListening: () => void;
   stopListening: () => void;
   handleTranscriptFinal: (transcript: string) => void;
+  registerSendToAI: (fn: ((transcript: string) => void) | undefined) => void;
 }
 
 const SonaVoiceContext = createContext<SonaVoiceContextType | null>(null);
 
-export function SonaVoiceProvider({ children }: { children: React.ReactNode }) {
+type SonaVoiceProviderProps = {
+  children: React.ReactNode;
+  onSendToAI?: (transcript: string) => void;
+};
+
+export function SonaVoiceProvider({ children, onSendToAI }: SonaVoiceProviderProps) {
+  const onSendToAIPropRef = useRef(onSendToAI);
+  onSendToAIPropRef.current = onSendToAI;
+  const boundSendToAIRef = useRef<((transcript: string) => void) | undefined>();
+
+  const registerSendToAI = useCallback((fn: ((transcript: string) => void) | undefined) => {
+    boundSendToAIRef.current = fn;
+  }, []);
   const [isListening, setIsListening] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState('');
   const [sonaResponse, setSonaResponse] = useState('');
@@ -74,7 +87,8 @@ export function SonaVoiceProvider({ children }: { children: React.ReactNode }) {
         setSonaResponse('');
       }, 2000);
     } else {
-      setSonaState('thinking');
+      const sendToAI = onSendToAIPropRef.current ?? boundSendToAIRef.current;
+      if (sendToAI) sendToAI(transcript);
     }
   };
 
@@ -87,8 +101,9 @@ export function SonaVoiceProvider({ children }: { children: React.ReactNode }) {
       startListening,
       stopListening,
       handleTranscriptFinal,
+      registerSendToAI,
     }),
-    [isListening, currentTranscript, sonaResponse, sonaState],
+    [isListening, currentTranscript, sonaResponse, sonaState, registerSendToAI],
   );
 
   return <SonaVoiceContext.Provider value={value}>{children}</SonaVoiceContext.Provider>;
