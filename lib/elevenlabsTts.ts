@@ -74,8 +74,8 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
 
     if (!response.ok) {
       const err = await response.text();
-      console.error('EL: API error:', err);
-      _lastError = err.substring(0, 120);
+      console.error('EL: API error body (full):', err);
+      _lastError = err;
       Speech.speak(textToSpeak);
       return { ok: false, reason: 'api_error' };
     }
@@ -123,8 +123,9 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
       }, 120_000);
     });
   } catch (e) {
-    console.warn('[TTS] error:', e);
-    _lastError = String((e as Error)?.message ?? e).substring(0, 120);
+    const msg = String((e as Error)?.stack ?? (e as Error)?.message ?? e);
+    console.warn('[TTS] error (full):', msg);
+    _lastError = msg;
     _lastStatus = -1;
     Speech.speak(textToSpeak);
     return { ok: false, reason: 'error' };

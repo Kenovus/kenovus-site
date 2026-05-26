@@ -154,7 +154,7 @@ export default function SonaTabScreen() {
       {/* ── Siri edge glow — visible on mic tap even without speech API ─ */}
       <SonaAmbientGlow visible={isListening || visualListening} />
 
-      {__DEV__ ? <DebugVoicePanel /> : null}
+      <DebugVoicePanel />
 
     </ImageBackground>
   );
