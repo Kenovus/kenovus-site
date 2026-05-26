@@ -10,7 +10,6 @@ import { type CoachBootstrap, PatientCoachPanel } from '@/components/patient/Pat
 import { LotusOrb } from '@/components/ui/LotusOrb';
 import { SonaAmbientGlow } from '@/components/ui/SonaAmbientGlow';
 import { useSonaVoice } from '@/contexts/SonaVoiceContext';
-import { useAuth } from '@/hooks/useAuth';
 import { getExpoPublic } from '@/lib/expoPublicEnv';
 import { getLastElevenLabsStatus } from '@/lib/elevenlabsTts';
 import { useAppTheme } from '@/lib/theme/ThemeProvider';
@@ -24,13 +23,7 @@ const ASSETS = {
   logoGold:  require('../../assets/images/sona-logo-gold.png'),
 } as const;
 
-// PART 5 — chips differ by patient type
-const GLP1_CHIPS = [
-  'Adjust my macros', 'My weight', 'Am I on track?',
-  'InBody trends', 'My labs', 'Book an appointment', 'Make a payment',
-] as const;
-
-const NON_GLP_CHIPS = [
+const CANONICAL_CHIPS = [
   'Adjust my macros', 'My weight', 'Am I on track?',
   'InBody trends', 'My labs', 'Log my workout',
 ] as const;
@@ -56,12 +49,8 @@ export default function SonaTabScreen() {
   const { resolvedTheme } = useAppTheme();
   const isDark = resolvedTheme === 'dark';
   const { isListening } = useSonaVoice();
-  const { profile } = useAuth();
 
-  // PART 5 — route chips by patient type
-  const isGlp1 = (profile as { consumer_tier?: string } | null)?.consumer_tier === 'glp1_plus'
-    || profile?.role === 'clinic_patient';
-  const CHIPS = isGlp1 ? GLP1_CHIPS : NON_GLP_CHIPS;
+  const CHIPS = CANONICAL_CHIPS;
 
   const { prefill } = useLocalSearchParams<{ prefill?: string | string[] }>();
   const [coachBootstrap, setCoachBootstrap] = useState<CoachBootstrap | null>(null);

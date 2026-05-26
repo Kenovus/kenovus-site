@@ -84,15 +84,18 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
     const arrayBuffer = await response.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
 
-    const chunks: string[] = [];
+    // FileSystem.EncodingType.Base64 is undefined in some production builds —
+    // use the string literal directly. Same for the chunked binary build.
+    let binary = '';
     for (let i = 0; i < bytes.length; i += 8192) {
-      chunks.push(String.fromCharCode(...bytes.subarray(i, i + 8192)));
+      const chunk = bytes.subarray(i, i + 8192);
+      binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
     }
-    const base64Audio = btoa(chunks.join(''));
+    const base64Audio = btoa(binary);
 
-    const fileUri = (FileSystem.cacheDirectory ?? '') + `sona_${Date.now()}.mp3`;
+    const fileUri = FileSystem.cacheDirectory + `sona_${Date.now()}.mp3`;
     await FileSystem.writeAsStringAsync(fileUri, base64Audio, {
-      encoding: FileSystem.EncodingType.Base64,
+      encoding: 'base64' as never,
     });
 
     await Audio.setAudioModeAsync({

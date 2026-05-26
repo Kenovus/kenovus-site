@@ -235,14 +235,17 @@ export function PatientCoachPanel({
   });
 
   const onSend = async () => {
-    if (sendInFlightRef.current) return;
-    const t = draftRef.current.trim();
-    if (!t || loading) return;
+    if (sendInFlightRef.current) {
+      console.log('SEND BLOCKED: already in flight');
+      return;
+    }
     sendInFlightRef.current = true;
-    setDraftText('');
-    setLastInputWasVoice(false);
-    Keyboard.dismiss();
     try {
+      const t = draftRef.current.trim();
+      if (!t || loading) return;
+      setDraftText('');
+      setLastInputWasVoice(false);
+      Keyboard.dismiss();
       await send(t);
     } finally {
       sendInFlightRef.current = false;
