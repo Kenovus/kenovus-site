@@ -11,6 +11,8 @@ import { LotusOrb } from '@/components/ui/LotusOrb';
 import { SonaAmbientGlow } from '@/components/ui/SonaAmbientGlow';
 import { useSonaVoice } from '@/contexts/SonaVoiceContext';
 import { useAuth } from '@/hooks/useAuth';
+import { getExpoPublic } from '@/lib/expoPublicEnv';
+import { getLastElevenLabsStatus } from '@/lib/elevenlabsTts';
 import { useAppTheme } from '@/lib/theme/ThemeProvider';
 
 const GOLD = '#BF8D36';
@@ -152,9 +154,46 @@ export default function SonaTabScreen() {
       {/* ── Siri edge glow — visible on mic tap even without speech API ─ */}
       <SonaAmbientGlow visible={isListening || visualListening} />
 
+      {__DEV__ ? <DebugVoicePanel /> : null}
+
     </ImageBackground>
   );
 }
+
+function DebugVoicePanel() {
+  const insets = useSafeAreaInsets();
+  const [, force] = useState(0);
+  const apiKey = getExpoPublic('EXPO_PUBLIC_ELEVENLABS_API_KEY');
+  const voiceId =
+    getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID_FEMALE') ||
+    getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID_MALE') ||
+    getExpoPublic('EXPO_PUBLIC_ELEVENLABS_VOICE_ID');
+  useEffect(() => {
+    const t = setInterval(() => force((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const { status, error } = getLastElevenLabsStatus();
+  return (
+    <View style={[ds.panel, { top: insets.top + 4 }]} pointerEvents="none">
+      <Text style={ds.row}>EL Key: {apiKey ? apiKey.substring(0, 8) : 'MISSING'}</Text>
+      <Text style={ds.row}>Voice: {voiceId ? voiceId.substring(0, 8) : 'MISSING'}</Text>
+      <Text style={ds.row}>Last Status: {status == null ? '—' : status}{error ? ` (${error})` : ''}</Text>
+    </View>
+  );
+}
+
+const ds = StyleSheet.create({
+  panel: {
+    position: 'absolute',
+    right: 6,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    maxWidth: 260,
+  },
+  row: { color: '#FFD66E', fontFamily: 'DMSans_400Regular', fontSize: 10 },
+});
 
 const ss = StyleSheet.create({
   root: { flex: 1 },

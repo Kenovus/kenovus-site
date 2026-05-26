@@ -8,6 +8,12 @@ import * as Speech from 'expo-speech';
 import { getExpoPublic } from '@/lib/expoPublicEnv';
 
 let _activeSound: Audio.Sound | null = null;
+let _lastStatus: number | null = null;
+let _lastError: string | null = null;
+
+export function getLastElevenLabsStatus(): { status: number | null; error: string | null } {
+  return { status: _lastStatus, error: _lastError };
+}
 
 export async function stopSpeaking(): Promise<void> {
   if (_activeSound) {
@@ -64,13 +70,16 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
       },
     );
     console.log('EL: response status:', response.status);
+    _lastStatus = response.status;
 
     if (!response.ok) {
       const err = await response.text();
       console.error('EL: API error:', err);
+      _lastError = err.substring(0, 120);
       Speech.speak(textToSpeak);
       return { ok: false, reason: 'api_error' };
     }
+    _lastError = null;
 
     const arrayBuffer = await response.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
@@ -115,6 +124,8 @@ export async function speakCoachReply(text: string): Promise<{ ok: boolean; reas
     });
   } catch (e) {
     console.warn('[TTS] error:', e);
+    _lastError = String((e as Error)?.message ?? e).substring(0, 120);
+    _lastStatus = -1;
     Speech.speak(textToSpeak);
     return { ok: false, reason: 'error' };
   }

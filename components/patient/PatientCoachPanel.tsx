@@ -93,6 +93,7 @@ export function PatientCoachPanel({
   const draftRef = useRef('');
   const lastAutoSpokenIdRef = useRef<string | null>(null);
   const micTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sendInFlightRef = useRef(false);
 
   const setDraftText = useCallback((text: string) => {
     draftRef.current = text;
@@ -234,12 +235,18 @@ export function PatientCoachPanel({
   });
 
   const onSend = async () => {
+    if (sendInFlightRef.current) return;
     const t = draftRef.current.trim();
     if (!t || loading) return;
+    sendInFlightRef.current = true;
     setDraftText('');
     setLastInputWasVoice(false);
     Keyboard.dismiss();
-    await send(t);
+    try {
+      await send(t);
+    } finally {
+      sendInFlightRef.current = false;
+    }
   };
 
   const ensureSpeechReady = useCallback(async (): Promise<boolean> => {

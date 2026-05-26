@@ -441,6 +441,7 @@ export function useAI() {
 
   const send = useCallback(async (input: string) => {
     const text = input.trim();
+    console.log('SEND CALLED:', text.substring(0, 30), new Date().toISOString());
     if (!text) return;
 
     setLoading(true);
@@ -876,6 +877,7 @@ export function useAI() {
 
       let finalReply = '';
       let firstChunk = true;
+      let chunkCount = 0;
 
       try {
         // 20-second hard deadline — UI can never stay stuck in loading state
@@ -892,6 +894,7 @@ export function useAI() {
               user: augmentedUser,
               maxTokens: 200,
             })) {
+              chunkCount += 1;
               if (firstChunk) {
                 firstChunk = false;
                 setLoading(false); // first word arrived — hide spinner immediately
@@ -909,6 +912,8 @@ export function useAI() {
         const isTimeout = (streamErr as Error)?.message === 'stream_timeout';
         console.warn('[Sona]', isTimeout ? 'Timed out after 20s' : 'Streaming error:', streamErr);
       }
+
+      console.log('STREAM DONE: chunks=', chunkCount, 'replyLen=', finalReply.length);
 
       if (!finalReply) {
         finalReply = "I'm taking too long — try again.";
