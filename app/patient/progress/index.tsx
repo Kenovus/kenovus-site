@@ -8,6 +8,7 @@ import { useAppTheme } from '@/lib/theme/ThemeProvider';
 import { computeTimelineToGoal } from '@/lib/dailyPlan';
 import { fetchPatientIdForAuthUser } from '@/lib/onboarding/patient';
 import { useAuth } from '@/hooks/useAuth';
+import { ForecastTeaserCard } from '@/components/forecast/ForecastTeaserCard';
 
 const GOLD  = '#BF8D36';
 const BLUE  = '#5BC4DC';
@@ -166,6 +167,9 @@ export default function ProgressIndex() {
       <ScrollView
         contentContainerStyle={{paddingBottom:insets.bottom+24,paddingHorizontal:16}}
         showsVerticalScrollIndicator={false}>
+
+        {/* ── Physique Forecast teaser (only renders when goal exists) ── */}
+        <ForecastTeaserCard variant="progress" />
 
         {/* ── Scan CTA card ───────────────────────────────────────────── */}
         <Pressable onPress={()=>router.push('/patient/progress/scan' as never)}

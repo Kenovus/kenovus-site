@@ -168,6 +168,7 @@ export default function PatientLayout() {
         <Tabs.Screen name="check-in"                        options={{ href: null }} />
         <Tabs.Screen name="clinical-research"               options={{ href: null }} />
         <Tabs.Screen name="progress/scan"               options={{ href: null }} />
+        <Tabs.Screen name="physique-forecast"           options={{ href: null }} />
         <Tabs.Screen name="profile/appointments-log"    options={{ href: null }} />
       </Tabs>
       <WeeklySupplementCheckinGate />

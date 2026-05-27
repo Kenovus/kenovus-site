@@ -4,6 +4,7 @@ import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View }
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ForecastTeaserCard } from '@/components/forecast/ForecastTeaserCard';
 import { fetchFoodLogsForDate } from '@/lib/nutritionLogData';
 import { fetchPatientIdForAuthUser } from '@/lib/onboarding/patient';
 import { localDateKey } from '@/lib/patientSupplements';
@@ -421,6 +422,9 @@ export default function PatientHomeScreen() {
 
         {/* ── Non-focus-mode content ── */}
         {!focusMode && <>
+
+        {/* ── Physique Forecast teaser (only renders when goal exists) ── */}
+        <ForecastTeaserCard variant="home" />
 
         {/* ── Upcoming appointment card (shows when appt within 7 days) ── */}
         <Pressable style={s.apptCard} onPress={() => router.push('/patient/appointments' as Href)}>
