@@ -91,13 +91,14 @@ export function PatientCoachPanel({
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
   const draftRef = useRef('');
+  const [draftText, setDraftTextState] = useState('');
   const lastAutoSpokenIdRef = useRef<string | null>(null);
   const micTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sendInFlightRef = useRef(false);
+  const isSendingRef = useRef(false);
 
   const setDraftText = useCallback((text: string) => {
     draftRef.current = text;
-    inputRef.current?.setNativeProps({ text });
+    setDraftTextState(text);
   }, []);
 
   useEffect(() => {
@@ -108,10 +109,12 @@ export function PatientCoachPanel({
 
   const onDraftChange = useCallback((text: string) => {
     draftRef.current = text;
+    setDraftTextState(text);
   }, []);
 
   const sendVoiceToAI = useCallback(
     (transcript: string) => {
+      console.log('SEND (voice):', transcript.substring(0, 30));
       setLastInputWasVoice(true);
       setDraftText('');
       void send(transcript);
@@ -177,8 +180,9 @@ export function PatientCoachPanel({
     }
   }, []);
 
-  // TTS fires for every Sona reply (voice OR typed) — debounced so streaming completes first
+  // TTS fires only when the last user message came from the mic — debounced so streaming completes first
   useEffect(() => {
+    if (!lastInputWasVoice) return;
     if (loading) return;
     const last = messages[messages.length - 1];
     if (!last || last.role !== 'assistant') return;
@@ -235,15 +239,20 @@ export function PatientCoachPanel({
   });
 
   const onSend = useCallback(async () => {
-    if (sendInFlightRef.current) return;
-    sendInFlightRef.current = true;
+    const text = draftRef.current.trim();
+    if (!text) return;
+    if (isSendingRef.current) return;
+    isSendingRef.current = true;
+    setLastInputWasVoice(false);
+    draftRef.current = '';
+    setDraftText('');
+    inputRef.current?.clear();
+    Keyboard.dismiss();
+    console.log('SEND (typed):', text.substring(0, 30));
     try {
-      const t = draftRef.current.trim();
-      setDraftText('');
-      Keyboard.dismiss();
-      await send(t);
+      await send(text);
     } finally {
-      sendInFlightRef.current = false;
+      isSendingRef.current = false;
     }
   }, [send, setDraftText]);
 
@@ -442,7 +451,7 @@ export function PatientCoachPanel({
         <View style={styles.askRow}>
           <TextInput
             ref={inputRef}
-            defaultValue=""
+            value={draftText}
             onChangeText={onDraftChange}
             placeholder={sonaTab ? 'Ask Sona anything…' : 'Ask Sona…'}
             placeholderTextColor={tokens.colors.textCaption}

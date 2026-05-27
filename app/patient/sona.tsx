@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import {
   Image, ImageBackground, Keyboard, KeyboardAvoidingView,
@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { type CoachBootstrap, PatientCoachPanel } from '@/components/patient/PatientCoachPanel';
 import { LotusOrb } from '@/components/ui/LotusOrb';
-import { SonaAmbientGlow } from '@/components/ui/SonaAmbientGlow';
 import { useSonaVoice } from '@/contexts/SonaVoiceContext';
 import { getExpoPublic } from '@/lib/expoPublicEnv';
 import { getLastElevenLabsStatus } from '@/lib/elevenlabsTts';
@@ -55,26 +54,6 @@ export default function SonaTabScreen() {
   const { prefill } = useLocalSearchParams<{ prefill?: string | string[] }>();
   const [coachBootstrap, setCoachBootstrap] = useState<CoachBootstrap | null>(null);
   const [conversationStarted, setConversationStarted] = useState(false);
-  const [visualListening, setVisualListening]         = useState(false);
-  const glowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Fire this when mic is tapped — shows glow even if speech recognition
-  // is unavailable (e.g. Expo Go simulator). Clears after 4 s if not listening.
-  const handleMicTap = () => {
-    setVisualListening(true);
-    if (glowTimer.current) clearTimeout(glowTimer.current);
-    glowTimer.current = setTimeout(() => setVisualListening(false), 4000);
-  };
-
-  // If real listening starts, keep glow active; when it stops, clear the timer.
-  useEffect(() => {
-    if (isListening) {
-      if (glowTimer.current) clearTimeout(glowTimer.current);
-      setVisualListening(true);
-    } else {
-      // Real listening ended — let the 4s timer run out naturally.
-    }
-  }, [isListening]);
 
   useEffect(() => {
     const raw = Array.isArray(prefill) ? prefill[0] : prefill;
@@ -108,7 +87,7 @@ export default function SonaTabScreen() {
 
           {/* ── Orb — fixed, never scrolled ──────────────────────────── */}
           <View style={ss.orbSection}>
-            <LotusOrb isListening={isListening || visualListening} isDark={isDark} size={200} />
+            <LotusOrb isListening={isListening} isDark={isDark} size={200} />
 
             {!conversationStarted && (
               <>
@@ -134,14 +113,10 @@ export default function SonaTabScreen() {
           sonaTab
           hideHeader
           suppressWeekly
-          onMicTap={handleMicTap}
           coachBootstrap={coachBootstrap}
           onCoachBootstrapConsumed={() => setCoachBootstrap(null)}
         />
       </KeyboardAvoidingView>
-
-      {/* ── Siri edge glow — visible on mic tap even without speech API ─ */}
-      <SonaAmbientGlow visible={isListening || visualListening} />
 
       <DebugVoicePanel />
 
