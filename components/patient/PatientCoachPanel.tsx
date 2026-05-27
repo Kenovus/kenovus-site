@@ -238,9 +238,10 @@ export function PatientCoachPanel({
     if (sendInFlightRef.current) return;
     sendInFlightRef.current = true;
     try {
-      await send(draftRef.current.trim());
+      const t = draftRef.current.trim();
       setDraftText('');
       Keyboard.dismiss();
+      await send(t);
     } finally {
       sendInFlightRef.current = false;
     }
