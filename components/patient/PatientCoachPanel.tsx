@@ -177,9 +177,9 @@ export function PatientCoachPanel({
     }
   }, []);
 
-  // TTS fires ONLY for voice-input replies, NOT typed messages — debounced so streaming completes first
+  // TTS fires for every Sona reply (voice OR typed) — debounced so streaming completes first
   useEffect(() => {
-    if (!autoReadAloud || !lastInputWasVoice) return;
+    if (!autoReadAloud) return;
     if (loading) return;
     const last = messages[messages.length - 1];
     if (!last || last.role !== 'assistant') return;
@@ -194,6 +194,7 @@ export function PatientCoachPanel({
       if (!latest.text || latest.text.length < 10) return;
       lastAutoSpokenIdRef.current = messageId;
       setLastInputWasVoice(false);
+      console.log('About to call speakCoachReply, lastInputWasVoice:', lastInputWasVoice);
       void playReplyAloud(latest.text);
     }, 750);
 
@@ -234,23 +235,15 @@ export function PatientCoachPanel({
     void handleTranscriptFinal(t);
   });
 
-  const onSend = async () => {
-    if (sendInFlightRef.current) {
-      console.log('SEND BLOCKED: already in flight');
-      return;
-    }
+  const onSend = useCallback(async () => {
+    if (sendInFlightRef.current) return;
     sendInFlightRef.current = true;
     try {
-      const t = draftRef.current.trim();
-      if (!t || loading) return;
-      setDraftText('');
-      setLastInputWasVoice(false);
-      Keyboard.dismiss();
-      await send(t);
+      await send(draftRef.current.trim());
     } finally {
       sendInFlightRef.current = false;
     }
-  };
+  }, [send]);
 
   const ensureSpeechReady = useCallback(async (): Promise<boolean> => {
     // Silently fail if speech recognition is unavailable — no blocking alerts
