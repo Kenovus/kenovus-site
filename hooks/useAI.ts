@@ -880,11 +880,12 @@ export function useAI() {
       let chunkCount = 0;
 
       try {
-        // 20-second hard deadline — UI can never stay stuck in loading state
-        let _resolveTimeout: (() => void) | null = null;
+        // 20-second hard deadline — UI can never stay stuck in loading state.
+        // Init with a no-op so TS keeps the type callable across the Promise-constructor assignment.
+        let cancelTimeout: () => void = () => {};
         const timeoutPromise = new Promise<void>((_, reject) => {
           const t = setTimeout(() => reject(new Error('stream_timeout')), 20_000);
-          _resolveTimeout = () => clearTimeout(t);
+          cancelTimeout = () => clearTimeout(t);
         });
 
         await Promise.race([
@@ -904,7 +905,7 @@ export function useAI() {
                 msg.id === assistantId ? { ...msg, text: finalReply } : msg,
               ));
             }
-            _resolveTimeout?.();
+            cancelTimeout();
           })(),
           timeoutPromise,
         ]);

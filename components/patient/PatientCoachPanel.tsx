@@ -179,7 +179,6 @@ export function PatientCoachPanel({
 
   // TTS fires for every Sona reply (voice OR typed) — debounced so streaming completes first
   useEffect(() => {
-    if (!autoReadAloud) return;
     if (loading) return;
     const last = messages[messages.length - 1];
     if (!last || last.role !== 'assistant') return;
@@ -199,7 +198,7 @@ export function PatientCoachPanel({
     }, 750);
 
     return () => clearTimeout(timer);
-  }, [loading, messages, autoReadAloud, lastInputWasVoice, playReplyAloud]);
+  }, [loading, messages, lastInputWasVoice, playReplyAloud]);
 
   useEffect(() => {
     if (!currentTranscript) return;
@@ -240,10 +239,12 @@ export function PatientCoachPanel({
     sendInFlightRef.current = true;
     try {
       await send(draftRef.current.trim());
+      setDraftText('');
+      Keyboard.dismiss();
     } finally {
       sendInFlightRef.current = false;
     }
-  }, [send]);
+  }, [send, setDraftText]);
 
   const ensureSpeechReady = useCallback(async (): Promise<boolean> => {
     // Silently fail if speech recognition is unavailable — no blocking alerts
